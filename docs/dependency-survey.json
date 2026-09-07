@@ -1,0 +1,387 @@
+{
+  "date": "2026-09-07",
+  "source": "https://pypi.org/pypi/{name}/{version}/json",
+  "note": "Consulta pré-instalação; lista vazia de advisories não é garantia de ausência de vulnerabilidades.",
+  "packages": [
+    {
+      "name": "pdfplumber",
+      "version": "0.11.10",
+      "license": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "dependencies": [
+        "pdfminer.six==20260107",
+        "Pillow>=12.2.0",
+        "pypdfium2>=5.9.0"
+      ],
+      "advisories": [],
+      "released": "2026-06-15T03:31:29.702225Z",
+      "urls": {
+        "Homepage": "https://github.com/jsvine/pdfplumber"
+      }
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [
+        "iniconfig>=1.0.1",
+        "packaging>=22",
+        "pluggy<2,>=1.5",
+        "pygments>=2.7.2"
+      ],
+      "advisories": [],
+      "released": "2026-06-19T10:58:31.347074Z",
+      "urls": {
+        "Changelog": "https://docs.pytest.org/en/stable/changelog.html",
+        "Contact": "https://docs.pytest.org/en/stable/contact.html",
+        "Funding": "https://docs.pytest.org/en/stable/sponsor.html",
+        "Homepage": "https://docs.pytest.org/en/latest/",
+        "Source": "https://github.com/pytest-dev/pytest",
+        "Tracker": "https://github.com/pytest-dev/pytest/issues"
+      }
+    },
+    {
+      "name": "ruff",
+      "version": "0.16.6",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-09-03T16:56:40.986922Z",
+      "urls": {
+        "Changelog": "https://github.com/astral-sh/ruff/blob/main/CHANGELOG.md",
+        "Documentation": "https://docs.astral.sh/ruff/",
+        "Homepage": "https://docs.astral.sh/ruff",
+        "Repository": "https://github.com/astral-sh/ruff"
+      }
+    },
+    {
+      "name": "mypy",
+      "version": "2.3.1",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [
+        "typing_extensions>=4.6.0; python_version < \"3.15\"",
+        "mypy_extensions>=1.0.0",
+        "pathspec>=1.0.0",
+        "librt>=0.13.0; platform_python_implementation != \"PyPy\"",
+        "ast-serialize<1.0.0,>=0.6.0"
+      ],
+      "advisories": [],
+      "released": "2026-08-15T03:01:23.577672Z",
+      "urls": {
+        "Changelog": "https://github.com/python/mypy/blob/master/CHANGELOG.md",
+        "Documentation": "https://mypy.readthedocs.io/en/stable/index.html",
+        "Homepage": "https://www.mypy-lang.org/",
+        "Issues": "https://github.com/python/mypy/issues",
+        "Repository": "https://github.com/python/mypy"
+      }
+    },
+    {
+      "name": "build",
+      "version": "1.6.0",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [
+        "packaging>=24.0",
+        "pyproject_hooks"
+      ],
+      "advisories": [],
+      "released": "2026-08-27T21:01:14.957317Z",
+      "urls": {
+        "changelog": "https://build.pypa.io/en/stable/changelog.html",
+        "homepage": "https://build.pypa.io",
+        "issues": "https://github.com/pypa/build/issues",
+        "source": "https://github.com/pypa/build"
+      }
+    },
+    {
+      "name": "setuptools",
+      "version": "84.0.0",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-08-08T18:27:56.719708Z",
+      "urls": {
+        "Changelog": "https://setuptools.pypa.io/en/stable/history.html",
+        "Documentation": "https://setuptools.pypa.io/",
+        "Source": "https://github.com/pypa/setuptools"
+      }
+    },
+    {
+      "name": "uv",
+      "version": "0.12.10",
+      "license": "MIT OR Apache-2.0",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-09-04T23:13:31.502670Z",
+      "urls": {
+        "Changelog": "https://github.com/astral-sh/uv/blob/main/CHANGELOG.md",
+        "Discord": "https://discord.gg/astral-sh",
+        "Documentation": "https://docs.astral.sh/uv",
+        "Homepage": "https://pypi.org/project/uv/",
+        "Releases": "https://github.com/astral-sh/uv/releases",
+        "Repository": "https://github.com/astral-sh/uv"
+      }
+    },
+    {
+      "name": "pdfminer.six",
+      "version": "20260107",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [
+        "charset-normalizer>=2.0.0",
+        "cryptography>=36.0.0"
+      ],
+      "advisories": [],
+      "released": "2026-01-07T13:29:10.742517Z",
+      "urls": {
+        "Homepage": "https://github.com/pdfminer/pdfminer.six"
+      }
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0",
+      "license": "MIT-CMU",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-07-01T11:53:27.808291Z",
+      "urls": {
+        "Changelog": "https://github.com/python-pillow/Pillow/releases",
+        "Documentation": "https://pillow.readthedocs.io",
+        "Funding": "https://tidelift.com/subscription/pkg/pypi-pillow?utm_source=pypi-pillow&utm_medium=pypi",
+        "Homepage": "https://python-pillow.github.io",
+        "Mastodon": "https://fosstodon.org/@pillow",
+        "Release notes": "https://pillow.readthedocs.io/en/stable/releasenotes/index.html",
+        "Source": "https://github.com/python-pillow/Pillow"
+      }
+    },
+    {
+      "name": "pypdfium2",
+      "version": "5.13.0",
+      "license": "BSD-3-Clause, Apache-2.0, dependency licenses",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-08-13T10:57:40.522164Z",
+      "urls": {
+        "Changelog": "https://pypdfium2.readthedocs.io/en/stable/changelog.html",
+        "Documentation": "https://pypdfium2.readthedocs.io",
+        "Homepage": "https://github.com/pypdfium2-team/pypdfium2",
+        "Source": "https://github.com/pypdfium2-team/pypdfium2",
+        "Tracker": "https://github.com/pypdfium2-team/pypdfium2/issues"
+      }
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.0",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2025-10-18T21:55:41.639305Z",
+      "urls": {
+        "Homepage": "https://github.com/pytest-dev/iniconfig"
+      }
+    },
+    {
+      "name": "packaging",
+      "version": "26.3",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-08-04T18:15:27.159957Z",
+      "urls": {
+        "Documentation": "https://packaging.pypa.io/",
+        "Source": "https://github.com/pypa/packaging"
+      }
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0",
+      "license": "MIT",
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2025-05-15T12:30:06.134003Z",
+      "urls": null
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0",
+      "license": "BSD-2-Clause",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-08-17T08:02:44.912148Z",
+      "urls": {
+        "Bug Tracker": "https://github.com/pygments/pygments/issues",
+        "Changelog": "https://github.com/pygments/pygments/blob/master/CHANGES",
+        "Documentation": "https://pygments.org/docs",
+        "Homepage": "https://pygments.org",
+        "Source": "https://github.com/pygments/pygments"
+      }
+    },
+    {
+      "name": "typing-extensions",
+      "version": "4.16.0",
+      "license": "PSF-2.0",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-07-02T08:40:04.659120Z",
+      "urls": {
+        "Bug Tracker": "https://github.com/python/typing_extensions/issues",
+        "Changes": "https://github.com/python/typing_extensions/blob/main/CHANGELOG.md",
+        "Documentation": "https://typing-extensions.readthedocs.io/",
+        "Home": "https://github.com/python/typing_extensions",
+        "Q & A": "https://github.com/python/typing/discussions",
+        "Repository": "https://github.com/python/typing_extensions"
+      }
+    },
+    {
+      "name": "mypy-extensions",
+      "version": "1.1.0",
+      "license": null,
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2025-04-22T14:54:22.983092Z",
+      "urls": {
+        "Homepage": "https://github.com/python/mypy_extensions"
+      }
+    },
+    {
+      "name": "pathspec",
+      "version": "1.1.1",
+      "license": null,
+      "classifiers": [
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+      ],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-04-27T01:46:07.060850Z",
+      "urls": {
+        "Change Log": "https://python-path-specification.readthedocs.io/en/latest/changes.html",
+        "Documentation": "https://python-path-specification.readthedocs.io/en/latest/index.html",
+        "Issue Tracker": "https://github.com/cpburnz/python-pathspec/issues",
+        "Source Code": "https://github.com/cpburnz/python-pathspec"
+      }
+    },
+    {
+      "name": "librt",
+      "version": "0.15.0",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-08-07T10:46:22.569307Z",
+      "urls": {
+        "Homepage": "https://github.com/mypyc/librt",
+        "Issues": "https://github.com/mypyc/mypyc/issues"
+      }
+    },
+    {
+      "name": "ast-serialize",
+      "version": "0.10.0",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-09-07T10:21:17.374922Z",
+      "urls": {
+        "Homepage": "https://github.com/mypyc/ast_serialize",
+        "Issues": "https://github.com/mypyc/ast_serialize/issues"
+      }
+    },
+    {
+      "name": "pyproject-hooks",
+      "version": "1.2.0",
+      "license": null,
+      "classifiers": [
+        "License :: OSI Approved :: MIT License"
+      ],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2024-09-29T09:24:11.978642Z",
+      "urls": {
+        "Changelog": "https://pyproject-hooks.readthedocs.io/en/latest/changelog.html",
+        "Documentation": "https://pyproject-hooks.readthedocs.io/",
+        "Source": "https://github.com/pypa/pyproject-hooks"
+      }
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.1",
+      "license": "MIT",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-08-15T08:16:22.964547Z",
+      "urls": {
+        "Changelog": "https://github.com/jawah/charset_normalizer/blob/master/CHANGELOG.md",
+        "Code": "https://github.com/jawah/charset_normalizer",
+        "Documentation": "https://charset-normalizer.readthedocs.io/",
+        "Issue tracker": "https://github.com/jawah/charset_normalizer/issues"
+      }
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.1",
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "classifiers": [],
+      "dependencies": [
+        "cffi>=2.0.0; platform_python_implementation != \"PyPy\""
+      ],
+      "advisories": [],
+      "released": "2026-08-25T19:44:03.155112Z",
+      "urls": {
+        "changelog": "https://cryptography.io/en/latest/changelog/",
+        "documentation": "https://cryptography.io/",
+        "homepage": "https://github.com/pyca/cryptography",
+        "issues": "https://github.com/pyca/cryptography/issues",
+        "source": "https://github.com/pyca/cryptography/"
+      }
+    },
+    {
+      "name": "cffi",
+      "version": "2.1.1",
+      "license": "MIT-0",
+      "classifiers": [],
+      "dependencies": [
+        "pycparser; implementation_name != \"PyPy\""
+      ],
+      "advisories": [],
+      "released": "2026-08-03T21:19:15.602573Z",
+      "urls": {
+        "Changelog": "https://cffi.readthedocs.io/en/latest/whatsnew.html",
+        "Contact": "https://groups.google.com/forum/#!forum/python-cffi",
+        "Documentation": "https://cffi.readthedocs.io/",
+        "Download": "https://github.com/python-cffi/cffi/releases",
+        "Issue Tracker": "https://github.com/python-cffi/cffi/issues",
+        "Source Code": "https://github.com/python-cffi/cffi"
+      }
+    },
+    {
+      "name": "pycparser",
+      "version": "3.0",
+      "license": "BSD-3-Clause",
+      "classifiers": [],
+      "dependencies": [],
+      "advisories": [],
+      "released": "2026-01-21T14:26:50.693739Z",
+      "urls": {
+        "Homepage": "https://github.com/eliben/pycparser"
+      }
+    }
+  ]
+}

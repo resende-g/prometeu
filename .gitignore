@@ -1,0 +1,22 @@
+.venv*/
+.tools/
+.python/
+.cache/
+.worktrees/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.epub
+.DS_Store
+# Fontes locais preexistentes: licença de redistribuição não presumida.
+/PDFs_test/
+/*.pdf
+/*.zip
+/[0-9][0-9] - *.md
+/Prometeu - MVP.md
+/Fundacaodoprojeto.md
