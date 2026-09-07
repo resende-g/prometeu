@@ -1,0 +1,24 @@
+# Resolução auditada em 2026-09-07, Python 3.11–3.13.
+Pygments==2.21.0
+ast-serialize==0.10.0
+build==1.6.0
+cffi==2.1.1
+charset-normalizer==3.5.1
+cryptography==50.0.1
+iniconfig==2.3.0
+librt==0.15.0
+mypy-extensions==1.1.0
+mypy==2.3.1
+packaging==26.3
+pathspec==1.1.1
+pdfminer.six==20260107
+pdfplumber==0.11.10
+pillow==12.3.0
+pluggy==1.6.0
+pycparser==3.0
+pypdfium2==5.13.0
+pyproject-hooks==1.2.0
+pytest==9.1.1
+ruff==0.16.6
+setuptools==84.0.0
+typing-extensions==4.16.0

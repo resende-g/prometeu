@@ -1,6 +1,7 @@
 # Prometeu — execução local
 
-Data: 2026-09-07. Branch: integration/mvp. Wave 0 em andamento; Gate A pendente.
+Data: 2026-09-07. Branch: integration/mvp. Wave 0 concluída; Gate A aprovado.
+Comandos e resultados em [gates.md](gates.md).
 
 ## Fontes e lacunas
 
@@ -56,5 +57,4 @@ Workflow configurado; execução remota não verificada. Não houve publicação
 
 ## Próximos passos
 
-Finalizar auditoria/resolução de dependências, instalar ambiente, executar Gate A,
-registrar resultados e lançar pacotes independentes. Conversão ainda não implementada.
+Lançar pacotes independentes após o commit dos contratos. Conversão ainda não implementada.
