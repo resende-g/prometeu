@@ -1,6 +1,7 @@
 """CLI: argumentos e apresentação, sem heurísticas ou XML."""
 
 import argparse
+import unicodedata
 from pathlib import Path
 
 from prometeu.application.pipeline import ConversionPipeline
@@ -31,5 +32,19 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     for diagnostic in result.diagnostics:
-        print(f"{diagnostic.severity}: {diagnostic.code}: {diagnostic.message}")
+        message = f"{diagnostic.severity}: {diagnostic.code}: {diagnostic.message}"
+        print(
+            "".join(
+                f"\\u{ord(char):04x}" if unicodedata.category(char) in {"Cc", "Cf"} else char
+                for char in message
+            )
+        )
+    for validation in result.validations:
+        print(f"Validação {validation.name}: {validation.status.value}")
+    if result.success:
+        stats = result.statistics
+        print(
+            f"EPUB publicado: {stats.pages} páginas, {stats.paragraphs} parágrafos, "
+            f"{stats.output_bytes} bytes."
+        )
     return result.exit_code
