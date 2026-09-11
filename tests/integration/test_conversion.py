@@ -23,7 +23,7 @@ from prometeu.document.contracts import (
     ValidationResult,
     ValidationStatus,
 )
-from prometeu.document.model import PhysicalDocument, SemanticDocument
+from prometeu.document.model import Heading, PhysicalDocument, SemanticDocument
 from prometeu.epub import EPUBBuilder
 from prometeu.extraction import PdfPlumberExtractor
 from prometeu.validation import InternalEPUBValidator
@@ -172,6 +172,132 @@ def test_real_pipeline_preserves_models_statistics_and_validations(tmp_path: Pat
         ("internal", ValidationStatus.PASSED),
         ("epubcheck", ValidationStatus.NOT_RUN),
     ]
+
+
+def test_real_pipeline_preserves_h2_h3_hierarchy_from_pdf_to_epub(tmp_path: Path) -> None:
+    source = write_pdf(
+        tmp_path / "hierarchy.pdf",
+        (
+            (
+                TextLine("Capítulo", 72, 730, 22, True),
+                TextLine("Abertura.", 72, 690),
+                TextLine("Seção", 72, 650, 18, True),
+                TextLine("Desenvolvimento.", 72, 610),
+                TextLine("Subseção", 72, 570, 15, True),
+                TextLine("Detalhe.", 72, 530),
+            ),
+        ),
+        {"Title": "Hierarquia sintética"},
+    )
+    output = tmp_path / "hierarchy.epub"
+    exporter = RecordingExporter()
+
+    result = ConversionPipeline(exporter=exporter).run(ConversionRequest(source, output))
+
+    assert result.success
+    assert exporter.semantic is not None
+    chapter = exporter.semantic.chapters[0]
+    headings = ([chapter.heading] if chapter.heading else []) + [
+        block for block in chapter.blocks if isinstance(block, Heading)
+    ]
+    assert [(heading.level, heading.text) for heading in headings] == [
+        (1, "Capítulo"),
+        (2, "Seção"),
+        (3, "Subseção"),
+    ]
+    with ZipFile(output) as epub:
+        content = ET.fromstring(epub.read("EPUB/chapter-0001.xhtml"))
+        navigation = ET.fromstring(epub.read("EPUB/nav.xhtml"))
+    body = content.find(f"{{{_XHTML}}}body")
+    assert body is not None
+    assert [element.tag.rsplit("}", 1)[-1] for element in body] == [
+        "h1",
+        "p",
+        "h2",
+        "p",
+        "h3",
+        "p",
+    ]
+    toc = next(
+        element
+        for element in navigation.iter(f"{{{_XHTML}}}nav")
+        if element.get(f"{{{_EPUB}}}type") == "toc"
+    )
+    chapter_item = toc.find(f"{{{_XHTML}}}ol/{{{_XHTML}}}li")
+    assert chapter_item is not None
+    section_item = chapter_item.find(f"{{{_XHTML}}}ol/{{{_XHTML}}}li")
+    assert section_item is not None
+    subsection_item = section_item.find(f"{{{_XHTML}}}ol/{{{_XHTML}}}li")
+    assert subsection_item is not None
+    assert [
+        chapter_item.findtext(f"{{{_XHTML}}}a"),
+        section_item.findtext(f"{{{_XHTML}}}a"),
+        subsection_item.findtext(f"{{{_XHTML}}}a"),
+    ] == ["Capítulo", "Seção", "Subseção"]
+
+
+def test_real_pipeline_applies_conservative_cleaning_with_provenance(tmp_path: Path) -> None:
+    decomposed = "Conteu\u0301do final."
+    source = write_pdf(
+        tmp_path / "cleaning.pdf",
+        (
+            (
+                TextLine("Relatório sintético", 72, 820),
+                TextLine("Normalização comprovada.", 72, 740),
+                TextLine("Outra normali-", 72, 700),
+                TextLine("zação continua.", 72, 684),
+                TextLine("Um guarda-", 72, 640),
+                TextLine("chuva permanece.", 72, 624),
+                TextLine("Uso fictício", 72, 40),
+                TextLine("1", 280, 20),
+            ),
+            (
+                TextLine("Relatório sintético", 72, 820),
+                TextLine(decomposed, 72, 740),
+                TextLine("Uso fictício", 72, 40),
+                TextLine("2", 280, 20),
+            ),
+        ),
+        {"Title": "Limpeza sintética"},
+    )
+    output = tmp_path / "cleaning.epub"
+    extractor = RecordingExtractor()
+    exporter = RecordingExporter()
+
+    result = ConversionPipeline(extractor=extractor, exporter=exporter).run(
+        ConversionRequest(source, output)
+    )
+
+    assert result.success
+    assert extractor.physical is not None and exporter.semantic is not None
+    physical_lines = tuple(line for page in extractor.physical.pages for line in page.lines)
+    physical_texts = [line.text for line in physical_lines]
+    assert decomposed in physical_texts
+    assert physical_texts.count("Relatório sintético") == 2
+    assert physical_texts.count("Uso fictício") == 2
+    assert {"1", "2"} <= set(physical_texts)
+    blocks = exporter.semantic.chapters[0].blocks
+    expected = (
+        "Normalização comprovada.",
+        "Outra normalização continua.",
+        "Um guarda- chuva permanece.",
+        "Conteúdo final.",
+    )
+    assert tuple(block.text for block in blocks) == expected
+    origins = {line.text: line.source.lines[0] for line in physical_lines}
+    assert blocks[1].source.lines == (origins["Outra normali-"], origins["zação continua."])
+    assert blocks[2].source.lines == (origins["Um guarda-"], origins["chuva permanece."])
+    assert (
+        result.statistics.physical_lines,
+        result.statistics.paragraphs,
+        result.statistics.removed_lines,
+        result.statistics.dehyphenations,
+    ) == (12, 4, 6, 1)
+    with ZipFile(output) as epub:
+        content = ET.fromstring(epub.read("EPUB/chapter-0001.xhtml"))
+    assert (
+        tuple("".join(element.itertext()) for element in content.iter(f"{{{_XHTML}}}p")) == expected
+    )
 
 
 def test_cli_converts_sample_to_reopenable_epub_with_coherent_package(tmp_path: Path) -> None:

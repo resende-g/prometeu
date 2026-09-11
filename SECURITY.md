@@ -28,8 +28,29 @@ Não há exclusão de classes de falha nem risco de segurança aceito implicitam
 
 ## Estado e limitações
 
-Na Wave 0 as invariantes acima são requisitos, não controles concluídos. O estado
-verificado está em docs/execution-status.md. Vulnerabilidades desconhecidas de
+Na Wave 1, inspeção e extração usam subprocessos encerrados e recolhidos pelo
+supervisor em timeout, excesso de memória ou IPC. No macOS, o controle de memória
+é RSS por libproc, amostrado nominalmente a cada 20 ms; não é uma reserva rígida
+e pode haver excesso entre amostras. RLIMIT_CPU limita o worker; RLIMIT_AS só é
+usado no Linux. Linux ainda não foi executado nesta retomada. A aplicação requer
+o processo principal em macOS/Linux para o prazo por SIGALRM. O prazo inclui
+snapshot, processamento, validação e fsync, terminando antes da publicação atômica;
+não há garantia de prazo para um syscall de filesystem bloqueado pelo sistema.
+
+A entrada é aberta, verificada e copiada para diretório privado. A publicação
+sem sobrescrita usa `os.link`: um destino concorrente nunca é substituído.
+`--force` usa `os.replace`, sem seguir symlinks ou escrever no inode anterior.
+Mudanças observadas até a última checagem cancelam a publicação, mas POSIX rename
+não oferece comparação e troca: um escritor externo que mude o destino entre
+essa checagem e o rename pode ter seu destino substituído. A proteção contra
+aliases vale para o estado verificado; não cobre mutação adversarial simultânea
+do namespace por outro processo com permissão de escrita. Para coordenação
+estrita entre escritores, use saída distinta e sem `--force`.
+
+O validador reabre o ZIP com limites de tamanho/entradas, proíbe DTD, entidades,
+instruções de processamento e conteúdo fora do perfil XHTML/CSS gerado.
+EPUBCheck e revisão independente de segurança ainda não foram executados.
+O estado verificado está em docs/execution-status.md. Vulnerabilidades desconhecidas de
 dependências continuam possíveis; processamento nunca deve ocorrer com privilégios
 elevados. Não se promete remoção de temporários após falha irrecuperável do sistema.
 

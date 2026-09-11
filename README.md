@@ -5,18 +5,36 @@ Não há conta, serviço remoto, telemetria ou download durante conversão.
 
 ## Implemented
 
-Bootstrap, CLI de ajuda, modelos físicos/semânticos imutáveis e contratos mínimos.
-A conversão ainda retorna erro explícito; o MVP não está concluído.
+Conversão de PDF textual simples, em uma coluna, pelos modelos físico e semântico.
+Inspeção e extração em subprocessos supervisionados; parágrafos reflowable,
+continuidade conservadora entre páginas, headings H1/H2/H3, capítulos e TOC
+hierárquico. A limpeza remove margens recorrentes e paginação simples ou decorada
+sequenciada, desfaz hifenização ASCII corroborada e aplica NFC somente ao texto dos
+runs semânticos. O EPUB 3 passa por validação interna antes da publicação atômica.
+
+```sh
+prometeu convert tests/fixtures/sample.pdf
+prometeu convert entrada.pdf -o saida.epub --title "Título" --language pt-BR
+```
+
+Saída existente é recusada por padrão. `--force` permite substituí-la depois da
+validação; entrada, seus hardlinks e destinos symlink são rejeitados. Em diretórios
+com escritores concorrentes, prefira saída distinta: `--force` não oferece
+comparação e troca atômica contra mudanças após a última verificação.
 
 ## Experimental
 
-Nenhuma conversão utilizável nesta etapa. Consulte [execução](docs/execution-status.md).
+Pipeline verificado localmente em macOS/Python 3.11 com dados sintéticos. As
+heurísticas são conservadoras e restritas a PDF textual simples em uma coluna.
+A validação aceita o perfil produzido pelo builder; não substitui EPUBCheck nem
+prova compatibilidade Kindle. Consulte [execução](docs/execution-status.md) e
+[gates](docs/gates.md).
 
-## Planned
+## Próxima revisão e limites
 
-Inspeção e extração supervisionadas, reconstrução textual conservadora, limpeza,
-EPUB próprio, validação interna e publicação atômica. OCR, IA, GUI, associação
-de notas e exportação de imagens estão fora desta execução.
+O Gate E ainda requer revisão independente. EPUBCheck, Kindle, Linux, Python
+3.12/3.13 e workflow remoto permanecem não verificados. OCR, notas de rodapé,
+layouts multicoluna, imagens, IA, GUI e associação de notas estão fora do escopo.
 
 ## Desenvolvimento
 

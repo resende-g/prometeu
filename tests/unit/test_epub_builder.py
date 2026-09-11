@@ -66,6 +66,60 @@ def test_export_preserves_block_order_and_inline_styles(tmp_path: Path) -> None:
     )
 
 
+def test_xhtml_and_toc_preserve_heading_hierarchy_and_anchor_targets(tmp_path: Path) -> None:
+    output = tmp_path / "livro.epub"
+    document = _document(
+        heading=Heading("h1", 1, (Inline("Capítulo"),)),
+        blocks=(
+            Heading("h2-a", 2, (Inline("Seção A"),)),
+            Heading("h3", 3, (Inline("Subseção"),)),
+            Paragraph("p-1", (Inline("Conteúdo."),)),
+            Heading("h2-b", 2, (Inline("Seção B"),)),
+        ),
+    )
+
+    _export(output, document)
+
+    with ZipFile(output) as epub:
+        chapter = ET.fromstring(epub.read("EPUB/chapter-0001.xhtml"))
+        navigation = ET.fromstring(epub.read("EPUB/nav.xhtml"))
+    body = chapter.find(f"{{{_XHTML}}}body")
+    assert body is not None
+    assert [element.tag.rsplit("}", 1)[-1] for element in body] == [
+        "h1",
+        "h2",
+        "h3",
+        "p",
+        "h2",
+    ]
+    anchors = {"".join(element.itertext()): element.get("id") for element in body}
+    toc = next(
+        node
+        for node in navigation.iter(f"{{{_XHTML}}}nav")
+        if node.get(f"{{{_EPUB}}}type") == "toc"
+    )
+    root_list = toc.find(f"{{{_XHTML}}}ol")
+    assert root_list is not None
+    chapter_item = root_list.find(f"{{{_XHTML}}}li")
+    assert chapter_item is not None
+    section_list = chapter_item.find(f"{{{_XHTML}}}ol")
+    assert section_list is not None
+    sections = section_list.findall(f"{{{_XHTML}}}li")
+    assert [section.findtext(f"{{{_XHTML}}}a") for section in sections] == [
+        "Seção A",
+        "Seção B",
+    ]
+    subsection_list = sections[0].find(f"{{{_XHTML}}}ol")
+    assert subsection_list is not None
+    assert subsection_list.findtext(f"{{{_XHTML}}}li/{{{_XHTML}}}a") == "Subseção"
+    assert sections[1].find(f"{{{_XHTML}}}ol") is None
+    assert {link.text: link.get("href") for link in toc.iter(f"{{{_XHTML}}}a")} == {
+        text: f"chapter-0001.xhtml#{anchor}"
+        for text, anchor in anchors.items()
+        if text != "Conteúdo."
+    }
+
+
 def test_chapter_without_heading_has_valid_navigation_without_visible_title(tmp_path: Path) -> None:
     output = tmp_path / "livro.epub"
     _export(output, _document(blocks=(Paragraph("p-1", (Inline("Conteúdo."),)),)))

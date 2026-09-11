@@ -1,60 +1,54 @@
-# Prometeu — execução local
+# Prometeu — estado de execução local
 
-Data: 2026-09-07. Branch: integration/mvp. Wave 0 concluída; Gate A aprovado.
-Comandos e resultados em [gates.md](gates.md).
+Data: 2026-09-11. HEAD `325e209`, destacado. Gates B–D fechados por evidência local;
+Gate E aguarda revisão independente. Nenhum commit foi criado nesta retomada.
+Comandos, contagens e limites estão em [gates.md](gates.md).
 
-## Fontes e lacunas
+## Estado comprovado
 
-Leitura integral concluída: 01 visão, 02 arquitetura, 04 modelo, 05 casos de uso,
-06 qualidade, 07 licenças, 08 segurança, 09 roadmap, 10 backlog, prompt mestre
-Prometeu - MVP.md e Fundacaodoprojeto.md. Este último é o roteiro dos dez documentos.
-Os oito PDFs técnicos foram lidos localmente com PDFKit: cinco guias EPUBCheck,
-visão EPUB 3, pdfplumber/PyPI e pdfminer.six. Comandos antigos são referências,
-não versões aprovadas. Livros em PDFs_test não foram analisados nem incorporados.
-
-O 03 na raiz duplica 02, SHA-256
-58abc3303a44ff8b20f64833d939576c95f4959d80533baf7d84597973c5c862.
-A fonte correta fornecida depois, Downloads/03 - Requisitos Funcionais e Não
-Funcionais.md, inicia pelo título correto e foi lida integralmente: 32.068 bytes,
-SHA-256 90920e287c915cb4d0af039fc068f5a7f0677b3609762103a81e7a2c6033369b.
-O bloqueio anterior está resolvido; o original errado permanece intocado.
-
-Não havia AGENTS.md local/ancestral aplicável, README, LICENSE, SECURITY,
-CONTRIBUTING, código ou Git. Instruções AGENTS fornecidas na conversa aplicadas.
-PNG mencionado no mestre não localizado: lacuna não bloqueante ao núcleo textual.
-Licença de redistribuição dos anexos não presumida; ficam fora do Git.
-
-## Decisões e divergências
-
-O prompt de execução fixa notas sem associação, imagens sem exportação, nenhum OCR,
-IA ou GUI, mesmo onde fontes mais amplas os preveem. Não se marcam esses RF como
-concluídos. Requisitos corretos prevalecem sobre exemplos da arquitetura/backlog.
-Árvore de seções: headings H2/H3 ordenados delimitam seções sem duplicar a estrutura.
-
-## Plano operacional e ownership
-
-| Onda | Owner | Aceite |
+| Gate | Estado | Evidência principal |
 | --- | --- | --- |
-| 0 | P: bootstrap, modelos, contratos, configurações/docs | Gate A real, commits pequenos |
-| 1 | E: input/extraction; X: epub/validation; Q: fixtures/integration; P: structure/application/CLI | Primeiro PDF → dois modelos → EPUB validado; Gate B |
-| 2 | P: semântica; X: nav; Q: positivos/negativos | Parágrafos, continuidade, headings, capítulos, TOC; Gate C |
-| 3 | E: margens após transferência explícita; P: normalização; X: validação; Q: regressões | Limpeza conservadora/Unicode/segurança; Gate D |
-| 4 | R independente; P integra correções | Gate E, wheel limpo, execução offline, relatório |
+| A | Histórico concluído | Bootstrap: 9 testes e build com setuptools 84.0.0 em 2026-09-07 |
+| B | Fechado localmente | Pipeline textual, validação interna e publicação atômica; foco 10 passed |
+| C | Fechado localmente | Continuidade conservadora, H1/H2/H3, capítulos e TOC; foco 3 passed |
+| D | Fechado localmente | Margens, paginação, deshifenização ASCII, NFC semântico e E2E; foco 4 passed |
+| E | Pendente | Revisão independente e verificações externas/multiplataforma |
 
-E/X/Q só após Gate A e commit de contratos. Até quatro implementadores contando P.
-Worktrees isolados preferidos. Especialistas Sol/high e revisor Astra/high conforme
-pedido. Nenhum agente especializado iniciado antes do Gate A.
-Cada pacote: revisar diff → integrar → Ruff → mypy → pytest → corrigir → avançar.
+A verificação conjunta atual passou com 104 testes, Ruff lint e format check, mypy
+em 21 arquivos, os dois helps da CLI e `git diff --check`.
 
-## Ambiente e evidências iniciais
+## Evidência funcional dos Gates B–D
 
-macOS 26.6.2 arm64; Python inicial 3.14.7; Git 2.55.0. Git inicial ausente
-(exit 128); inicialização local integration/mvp realizada (exit 0) após permissão
-do ambiente. uv 0.12.10 instalado somente em .tools (exit 0), para instalar Python
-3.11.16, 3.12.14 e 3.13.15 em .python (exit 0). Java launcher sem runtime (exit 1).
-EPUBCheck não executado. Compatibilidade Kindle não verificada manualmente.
-Workflow configurado; execução remota não verificada. Não houve publicação remota.
+- Gate B: PDF textual simples percorre inspeção e extração supervisionadas, modelos
+  físico e semântico, builder EPUB, validação interna, fsync e publicação. Falhas
+  antes da publicação preservam o destino.
+- Gate C: continuidade incerta não é unida; H1 inicia capítulo, H2/H3 permanecem em
+  ordem e o TOC reproduz a hierarquia com anchors válidos.
+- Gate D: margens recorrentes, paginação decimal marginal e paginação decorada
+  sequenciada são removidas conservadoramente. Deshifenização exige `-` ASCII e
+  corroboração no texto físico. NFC altera somente o texto dos runs semânticos;
+  `PhysicalDocument` permanece como evidência original.
 
-## Próximos passos
+A regressão sintética ponta a ponta comprova 12 linhas físicas → 4 parágrafos,
+6 linhas removidas e 1 deshifenização. `Conteu\u0301do` permanece no PDF/modelo
+físico; `Conteúdo` aparece no modelo semântico e no XHTML.
 
-Lançar pacotes independentes após o commit dos contratos. Conversão ainda não implementada.
+## Limitação de build
+
+O build normal passou em execução anterior com setuptools 84.0.0. Nesta retomada,
+o venv reutilizado contém setuptools 79.0.1, enquanto `pyproject.toml` exige
+84.0.0. `python -m build --no-isolation` falha por essa divergência; sem rede e sem
+alterar o ambiente externo, wheel e sdist foram gerados com
+`python -m build --no-isolation --skip-dependency-check`. Esse resultado comprova
+o empacotamento local disponível, não o backend fixado.
+
+## Não verificado e fora de escopo
+
+Não verificados: EPUBCheck, Kindle, Linux, Python 3.12/3.13, workflow remoto e
+revisão independente. Fora de escopo: OCR, notas de rodapé, layouts multicoluna,
+imagens, IA, GUI e associação de notas.
+
+## Próxima etapa
+
+Gate E: revisão independente do diff e das evidências, sem ampliar o escopo dos
+Gates B–D.
