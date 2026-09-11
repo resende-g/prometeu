@@ -43,13 +43,12 @@ _EXPECTED_LINES = (
     "Fim da amostra sintética.",
 )
 _EXPECTED_PARAGRAPHS = (
-    "Capítulo 1 — A origem",
     "A primeira ação começa aqui e continua na linha seguinte.",
     "Este é outro parágrafo, após um intervalo maior.",
-    "Capítulo 2 — Continuidade",
     "Unicode extraível: café, ação e 世界.",
     "Fim da amostra sintética.",
 )
+_EXPECTED_HEADINGS = ("Capítulo 1 — A origem", "Capítulo 2 — Continuidade")
 
 
 class RecordingExtractor:
@@ -147,11 +146,12 @@ def test_real_pipeline_preserves_models_statistics_and_validations(tmp_path: Pat
         _EXPECTED_LINES
     )
     assert exporter.semantic is not None
-    assert len(exporter.semantic.chapters) == 1
-    assert exporter.semantic.chapters[0].heading is None
-    assert tuple(block.text for block in exporter.semantic.chapters[0].blocks) == (
-        _EXPECTED_PARAGRAPHS
-    )
+    assert tuple(
+        chapter.heading.text for chapter in exporter.semantic.chapters if chapter.heading
+    ) == (_EXPECTED_HEADINGS)
+    assert tuple(
+        block.text for chapter in exporter.semantic.chapters for block in chapter.blocks
+    ) == (_EXPECTED_PARAGRAPHS)
     assert exporter.semantic.metadata.title == "Amostra sintética"
     assert exporter.semantic.metadata.author == "Projeto Prometeu"
     assert exporter.semantic.metadata.language == "und"
@@ -162,9 +162,9 @@ def test_real_pipeline_preserves_models_statistics_and_validations(tmp_path: Pat
     assert result.statistics.pages == 2
     assert result.statistics.physical_lines == 7
     assert result.statistics.extracted_characters == 210
-    assert result.statistics.paragraphs == 6
-    assert result.statistics.headings == 0
-    assert result.statistics.chapters == 1
+    assert result.statistics.paragraphs == 4
+    assert result.statistics.headings == 2
+    assert result.statistics.chapters == 2
     assert result.statistics.output_bytes == output.stat().st_size
     assert [
         (validation.name.casefold(), validation.status) for validation in result.validations
@@ -189,7 +189,10 @@ def test_cli_converts_sample_to_reopenable_epub_with_coherent_package(tmp_path: 
             b"application/epub+zip",
         )
         package = ET.fromstring(epub.read("EPUB/package.opf"))
-        chapter = ET.fromstring(epub.read("EPUB/chapter-0001.xhtml"))
+        chapters = (
+            ET.fromstring(epub.read("EPUB/chapter-0001.xhtml")),
+            ET.fromstring(epub.read("EPUB/chapter-0002.xhtml")),
+        )
         navigation = ET.fromstring(epub.read("EPUB/nav.xhtml"))
 
     metadata = package.find(f"{{{_OPF}}}metadata")
@@ -209,22 +212,40 @@ def test_cli_converts_sample_to_reopenable_epub_with_coherent_package(tmp_path: 
         "nav": ("nav.xhtml", "application/xhtml+xml", "nav"),
         "css": ("styles.css", "text/css", None),
         "chapter-1": ("chapter-0001.xhtml", "application/xhtml+xml", None),
+        "chapter-2": ("chapter-0002.xhtml", "application/xhtml+xml", None),
     }
     spine = package.find(f"{{{_OPF}}}spine")
     assert spine is not None
-    assert [item.get("idref") for item in spine] == ["chapter-1"]
-    body = chapter.find(f"{{{_XHTML}}}body")
-    assert body is not None
-    assert [element.tag for element in body] == [f"{{{_XHTML}}}p"] * 6
-    assert tuple("".join(element.itertext()) for element in body) == _EXPECTED_PARAGRAPHS
+    assert [item.get("idref") for item in spine] == ["chapter-1", "chapter-2"]
+    first_body = chapters[0].find(f"{{{_XHTML}}}body")
+    second_body = chapters[1].find(f"{{{_XHTML}}}body")
+    assert first_body is not None and second_body is not None
+    assert [
+        [element.tag.rsplit("}", 1)[-1] for element in body] for body in (first_body, second_body)
+    ] == [
+        ["h1", "p", "p"],
+        ["h1", "p", "p"],
+    ]
+    assert (
+        tuple(
+            "".join(element.itertext())
+            for body in (first_body, second_body)
+            for element in body
+            if element.tag == f"{{{_XHTML}}}p"
+        )
+        == _EXPECTED_PARAGRAPHS
+    )
     toc = next(
         element
         for element in navigation.iter(f"{{{_XHTML}}}nav")
         if element.get(f"{{{_EPUB}}}type") == "toc"
     )
-    assert [
-        ("".join(link.itertext()), link.get("href")) for link in toc.iter(f"{{{_XHTML}}}a")
-    ] == [("Amostra sintética", "chapter-0001.xhtml")]
+    links = list(toc.iter(f"{{{_XHTML}}}a"))
+    assert ["".join(link.itertext()) for link in links] == list(_EXPECTED_HEADINGS)
+    assert [link.get("href", "").split("#", 1)[0] for link in links] == [
+        "chapter-0001.xhtml",
+        "chapter-0002.xhtml",
+    ]
     assert (
         InternalEPUBValidator().validate(output, ConversionLimits()).status
         is ValidationStatus.PASSED

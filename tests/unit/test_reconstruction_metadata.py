@@ -24,11 +24,14 @@ from prometeu.document.model import (
 from prometeu.structure.reconstruct import reconstruct
 
 
-def line(page, index, text, top, size=12):
+def line(page, index, text, top, size=12, bold=False):
     box = BoundingBox(72, top, 500, top + size)
     name = f"p{page}-l{index}"
     return PhysicalLine(
-        name, page, box, (PhysicalSpan(f"{name}-s1", text, box, TextStyle(size=size)),)
+        name,
+        page,
+        box,
+        (PhysicalSpan(f"{name}-s1", text, box, TextStyle(size=size, bold=bold)),),
     )
 
 
@@ -72,6 +75,31 @@ def test_uncertain_page_continuity_is_not_merged(end, start, top, size):
     document = physical((line(1, 1, end, top),), (line(2, 1, start, 60, size),))
     result = reconstruct(document, Metadata("Título", "urn:test"))
     assert len(result.document.chapters[0].blocks) == 2
+
+
+def test_large_bold_single_lines_split_chapters_without_losing_provenance():
+    document = physical(
+        (
+            line(1, 1, "Capítulo 1", 50, 20, True),
+            line(1, 2, "Primeiro parágrafo.", 100),
+            line(1, 3, "Destaque não estrutural.", 140, 20),
+        ),
+        (line(2, 1, "Capítulo 2", 50, 20, True), line(2, 2, "Segundo parágrafo.", 100)),
+    )
+
+    chapters = reconstruct(document, Metadata("Título", "urn:test")).document.chapters
+
+    assert [chapter.heading.text for chapter in chapters if chapter.heading] == [
+        "Capítulo 1",
+        "Capítulo 2",
+    ]
+    assert [chapter.id for chapter in chapters] == ["chapter-p1-l1", "chapter-p2-l1"]
+    assert [[block.text for block in chapter.blocks] for chapter in chapters] == [
+        ["Primeiro parágrafo.", "Destaque não estrutural."],
+        ["Segundo parágrafo."],
+    ]
+    assert chapters[1].heading is not None
+    assert chapters[1].heading.source == document.pages[1].lines[0].source
 
 
 def test_whitespace_only_normalization_preserves_unicode_hyphens_and_heading():

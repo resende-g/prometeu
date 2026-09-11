@@ -1,10 +1,12 @@
 """Primeira reconstrução: ordem física e parágrafos por distância vertical."""
 
 from collections.abc import Mapping
+from statistics import median_low
 
 from prometeu.document.contracts import ReconstructionResult
 from prometeu.document.model import (
     Chapter,
+    Heading,
     Inline,
     Metadata,
     Paragraph,
@@ -86,15 +88,52 @@ def _same_style(previous: PhysicalLine, line: PhysicalLine) -> bool:
     ) == (right.bold, right.italic)
 
 
+def _chapter(heading: Heading | None, blocks: list[Paragraph]) -> Chapter:
+    source = heading.source if heading else blocks[0].source if blocks else SourceReference()
+    suffix = source.lines[0].line_id if source.lines else "1"
+    return Chapter(f"chapter-{suffix}", heading, tuple(blocks))
+
+
 def reconstruct(physical: PhysicalDocument, metadata: Metadata) -> ReconstructionResult:
     lines = tuple(line for page in physical.pages for line in page.lines)
     paragraphs = ParagraphReconstructor().reconstruct(
         lines, {page.number: page.height for page in physical.pages}
     )
+    styles = [span.style for line in lines for span in line.spans if span.text.strip()]
+    body_sizes = [style.size for style in styles if not style.bold]
+    body_size = median_low(body_sizes or [style.size for style in styles]) if styles else 12.0
+    lines_by_id = {line.id: line for line in lines}
+    chapters: list[Chapter] = []
+    heading: Heading | None = None
+    blocks: list[Paragraph] = []
+    for paragraph in paragraphs:
+        origin = paragraph.source.lines
+        line = lines_by_id[origin[0].line_id] if len(origin) == 1 else None
+        styles = [span.style for span in line.spans if span.text.strip()] if line else []
+        is_heading = (
+            bool(styles)
+            and all(style.bold for style in styles)
+            and min(style.size for style in styles) > body_size * 1.3
+        )
+        if not is_heading:
+            blocks.append(paragraph)
+            continue
+        if heading is not None or blocks:
+            chapters.append(_chapter(heading, blocks))
+        heading = Heading(
+            paragraph.id.replace("para-", "heading-", 1),
+            1,
+            paragraph.runs,
+            paragraph.source,
+            0.9,
+            ("single-line", "bold", "font-size"),
+        )
+        blocks = []
+    chapters.append(_chapter(heading, blocks))
     return ReconstructionResult(
         SemanticDocument(
             physical.id,
             metadata,
-            (Chapter("chapter-1", None, paragraphs),),
+            tuple(chapters),
         )
     )
