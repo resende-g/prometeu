@@ -1,3 +1,4 @@
+import zlib
 from datetime import UTC, datetime
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -98,6 +99,32 @@ media-type="application/oebps-package+xml"/></rootfiles></container>""".encode("
     assert _code(path) == "EPUB_XML_DECLARATION"
 
 
+def test_utf16_processing_instruction_is_rejected_before_xml_parsing(tmp_path: Path) -> None:
+    path = tmp_path / "livro.epub"
+    _valid_epub(path)
+    hostile = """<?xml version="1.0" encoding="utf-16"?>
+<?xml-stylesheet href="https://example.invalid/hostil.css"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+<rootfiles><rootfile full-path="EPUB/package.opf"
+media-type="application/oebps-package+xml"/></rootfiles></container>""".encode("utf-16")
+    _rewrite(path, {"META-INF/container.xml": hostile})
+
+    assert _code(path) == "EPUB_XML_PROCESSING_INSTRUCTION"
+
+
+def test_unicode_processing_instruction_target_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "livro.epub"
+    _valid_epub(path)
+    hostile = """<?xml version="1.0" encoding="utf-8"?>
+<?é ação?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+<rootfiles><rootfile full-path="EPUB/package.opf"
+media-type="application/oebps-package+xml"/></rootfiles></container>""".encode()
+    _rewrite(path, {"META-INF/container.xml": hostile})
+
+    assert _code(path) == "EPUB_XML_PROCESSING_INSTRUCTION"
+
+
 @pytest.mark.parametrize(
     ("replacement", "expected"),
     [
@@ -183,6 +210,29 @@ def test_entry_count_is_bounded_before_content_is_read(tmp_path: Path) -> None:
             archive.writestr(f"EPUB/{index}.txt", b"")
 
     assert _code(path) == "EPUB_ENTRY_LIMIT"
+
+
+def test_invalid_deflate_stream_returns_failed_result(tmp_path: Path) -> None:
+    path = tmp_path / "deflate-invalido.epub"
+    with ZipFile(path, "w") as archive:
+        archive.writestr("mimetype", b"application/epub+zip", compress_type=ZIP_STORED)
+        archive.writestr("EPUB/invalido.bin", b"A" * 1_000, compress_type=ZIP_DEFLATED)
+    with ZipFile(path) as archive:
+        info = archive.getinfo("EPUB/invalido.bin")
+    raw = bytearray(path.read_bytes())
+    name_size = int.from_bytes(raw[info.header_offset + 26 : info.header_offset + 28], "little")
+    extra_size = int.from_bytes(raw[info.header_offset + 28 : info.header_offset + 30], "little")
+    data_offset = info.header_offset + 30 + name_size + extra_size
+    raw[data_offset : data_offset + info.compress_size] = b"\xff" * info.compress_size
+    path.write_bytes(raw)
+
+    with pytest.raises(zlib.error), ZipFile(path) as archive:
+        archive.read("EPUB/invalido.bin")
+
+    result = InternalEPUBValidator().validate(path, ConversionLimits())
+
+    assert result.status is ValidationStatus.FAILED
+    assert result.diagnostics[0].code == "EPUB_INVALID"
 
 
 def test_navigation_must_cover_every_spine_item_in_order(tmp_path: Path) -> None:

@@ -4,6 +4,7 @@ import posixpath
 import re
 import struct
 import zipfile
+import zlib
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -29,6 +30,7 @@ _MAX_ENTRIES = 10_000
 _CHUNK_SIZE = 64 * 1024
 _EXPECTED_CSS = b"h1, h2, h3 { break-after: avoid; }\n"
 _MODIFIED = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z").fullmatch
+_PROCESSING_INSTRUCTIONS = re.compile(rb"<\?([^ \t\r\n?]+)").findall
 _CONTENT_TAGS = {"html", "head", "title", "link", "body", "h1", "h2", "h3", "p", "strong", "em"}
 _NAV_TAGS = {"html", "head", "title", "link", "body", "nav", "h1", "ol", "li", "a"}
 _ATTRIBUTES = {
@@ -57,7 +59,7 @@ class InternalEPUBValidator:
             _validate(path, limits)
         except _InvalidEPUB as error:
             return _failed(error.code, str(error))
-        except (OSError, EOFError, UnicodeError, ValueError, zipfile.BadZipFile):
+        except (OSError, EOFError, UnicodeError, ValueError, zipfile.BadZipFile, zlib.error):
             return _failed("EPUB_INVALID", "O arquivo não é um EPUB interno válido.")
         return ValidationResult("internal", ValidationStatus.PASSED)
 
@@ -187,6 +189,11 @@ def _parse_xml(entries: dict[str, bytes], name: str) -> ET.Element:
     markup = data.replace(b"\x00", b"").upper()
     if b"<!DOCTYPE" in markup or b"<!ENTITY" in markup:
         raise _InvalidEPUB("EPUB_XML_DECLARATION", "DTD e entidades são proibidas no EPUB.")
+    if any(target != b"XML" for target in _PROCESSING_INSTRUCTIONS(markup)):
+        raise _InvalidEPUB(
+            "EPUB_XML_PROCESSING_INSTRUCTION",
+            "Processing instructions são proibidas no EPUB.",
+        )
     try:
         return ET.fromstring(data)
     except (ET.ParseError, UnicodeError, ValueError) as error:
