@@ -1,7 +1,9 @@
-# Prometeu Desktop (prévia de desenvolvimento)
+# Prometeu Desktop alpha
 
-Biblioteca vazia, inspeção local e revisão de metadados. Ainda não converte,
-exporta capas nem guarda livros. Sem chamadas remotas ou telemetria em runtime.
+Seleciona e inspeciona PDF textual, revisa os quatro metadados exportáveis, converte
+pelo core real, mostra o resultado e o localiza no Finder. Ainda não exporta capas,
+persiste biblioteca nem inclui o Python em builds de distribuição. Sem chamadas
+remotas ou telemetria em runtime.
 
 ## Preparação
 
@@ -32,7 +34,7 @@ npm run tauri -- dev
 
 O caminho deve ser absoluto, para um Python com **este checkout** instalado.
 É configuração do desenvolvedor, nunca um parâmetro vindo da UI. Apenas debug
-aceita esse intérprete. Release recusa inspeção até o sidecar ser empacotado.
+aceita esse intérprete. Release recusa inspeção e conversão até o sidecar ser empacotado.
 Windows não é suportado pela supervisão POSIX atual do core; não há fallback
 inseguro. Não foi acrescentada uma nova restrição ao core/CLI.
 
@@ -59,13 +61,19 @@ cargo test --locked --manifest-path src-tauri/Cargo.toml -- --include-ignored
 ```
 
 O último comando requer `PROMETEU_PYTHON` configurado e usa só sample.pdf sintético.
-Cargo.lock está versionado. O teste Rust inclui uma árvore de processos sintética
-e verifica que o worker termina sem afetar um processo fora do grupo.
+Cargo.lock está versionado. Os testes Rust exercitam inspeção e conversão Python
+reais, além de verificar que o worker termina sem afetar um processo fora do grupo.
 Validação nativa concluída: sample.pdf, cancelar/trocar/selecionar novamente, edição,
 caminhos Unicode/espaços, erro controlado, EMPTY, Channel e CSP. Janela 800×600
 verificada também em binário debug com assets locais, sem servidor Vite.
 Fechar durante inspeção encerra o grupo Python/worker antes de sair. A verificação
 manual observou os três processos ativos e seu término após fechar a janela.
+
+Conversão nativa verificada em 2026-09-13: fixture com Unicode/espaços, título,
+autor, idioma e identificador alterados, EPUB de 2.482 bytes, 2 capítulos e 4
+parágrafos. O validador interno e o EPUBCheck 5.3.0 passaram sem erros ou warnings;
+o botão “Mostrar no Finder” selecionou o arquivo publicado. Saída existente é
+recusada, sem opção de sobrescrita na GUI.
 
 A marca provisória é apenas PROMETEU. `src-tauri/icons/icon.png` é um PNG
 transparente exigido pelo gerador Tauri, não uma logo; substituir pelo asset oficial

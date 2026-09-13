@@ -69,4 +69,5 @@ fechar durante inspeção ou conversão encerra somente os processos do aplicati
 
 A CLI continua independente de Node/React/Rust. Consulte
 [instruções desktop](apps/desktop/README.md), [arquitetura](docs/frontend/architecture.md)
-e [handoff](docs/handoffs/frontend-desktop-handoff.md).
+e [handoff](docs/handoffs/frontend-desktop-handoff.md). O scorecard combinado está
+em [prontidão de release](docs/release-readiness.md).
