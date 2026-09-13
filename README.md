@@ -61,8 +61,8 @@ Os documentos PDF preexistentes não são fixtures autorizadas para redistribui�
 
 Primeira interface adicional em `apps/desktop`: biblioteca vazia, seleção nativa
 e inspeção de PDF pelo core, metadados editáveis. Ainda não converte pela GUI
-nem persiste a biblioteca. Frontend e bridge Python testados; build/seletor nativos
-ainda não verificados por ausência de Rust no ambiente desta implementação.
+nem persiste a biblioteca. Frontend, bridge Python e fluxo nativo de inspeção testados em macOS arm64.
+Cargo.lock versionado; fechar durante inspeção encerra Python e worker.
 
 A CLI continua independente de Node/React/Rust. Consulte
 [instruções desktop](apps/desktop/README.md), [arquitetura](docs/frontend/architecture.md)

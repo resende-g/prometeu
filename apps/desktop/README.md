@@ -15,10 +15,11 @@ cd apps/desktop
 npm ci
 ```
 
-Node >=22.12; versões verificadas: Node 26.7.0/npm 11.19.0. Rust estável e
+Node >=22.12; versões verificadas: Node 26.7.0/npm 11.19.0. Rust estável (mínimo declarado 1.88; testado 1.98.1) e
 [pré-requisitos nativos do Tauri](https://v2.tauri.app/start/prerequisites/)
-são necessários para a janela desktop. Rust não estava instalado durante esta
-implementação, portanto o shell ainda requer compilação e teste manual.
+são necessários para a janela desktop. Na segunda execução, compilação e inspeção nativa foram validadas em macOS arm64.
+Se cargo não estiver no PATH, execute `. "$HOME/.cargo/env"` no terminal; a
+instalação local de rustup não alterou seu perfil de shell.
 
 ## Abrir a janela desktop (macOS/Linux, com Rust instalado)
 
@@ -52,16 +53,19 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
-cargo check --manifest-path src-tauri/Cargo.toml
+cargo check --locked --manifest-path src-tauri/Cargo.toml
 cargo fmt --manifest-path src-tauri/Cargo.toml --check
-cargo test --manifest-path src-tauri/Cargo.toml -- --ignored
+cargo test --locked --manifest-path src-tauri/Cargo.toml -- --include-ignored
 ```
 
 O último comando requer `PROMETEU_PYTHON` configurado e usa só sample.pdf sintético.
-O primeiro cargo check deve gerar Cargo.lock; revisar e commitar esse lock antes
-de distribuir. Versões Rust diretas estão fixadas; transitivas não foram resolvidas.
-Teste manual pendente: selecionar/cancelar/trocar PDF no diálogo nativo, inspecionar
-sample.pdf, revisar campos, conferir CSP/Channel, fechar janela durante inspeção.
+Cargo.lock está versionado. O teste Rust inclui uma árvore de processos sintética
+e verifica que o worker termina sem afetar um processo fora do grupo.
+Validação nativa concluída: sample.pdf, cancelar/trocar/selecionar novamente, edição,
+caminhos Unicode/espaços, erro controlado, EMPTY, Channel e CSP. Janela 800×600
+verificada também em binário debug com assets locais, sem servidor Vite.
+Fechar durante inspeção encerra o grupo Python/worker antes de sair. A verificação
+manual observou os três processos ativos e seu término após fechar a janela.
 
 A marca provisória é apenas PROMETEU. `src-tauri/icons/icon.png` é um PNG
 transparente exigido pelo gerador Tauri, não uma logo; substituir pelo asset oficial

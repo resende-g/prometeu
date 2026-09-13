@@ -15,6 +15,9 @@ sem parâmetros de caminho ou comando. O seletor nativo
 fica no Rust; JavaScript não fornece caminhos, executáveis nem comandos. Rust
 inicia o Python por argv fixo (`-I -m prometeu.application.desktop_inspect`) e envia
 um objeto JSON em stdin. Esse módulo só aceita inspeção e reutiliza a API pública.
+Python/worker são lançados em grupo próprio. Fechar/sair durante inspeção
+sinaliza somente esse grupo, recolhe o child e então encerra a janela/app.
+O mesmo mecanismo atende timeout; nenhum processo é buscado por nome.
 Parsing continua em Python com os limites e supervisão existentes. O adapter é
 isolamento de processo, não sandbox; seu suporte atual é macOS/Linux.
 
@@ -29,7 +32,9 @@ absoluto em `PROMETEU_PYTHON`, fornecido pelo desenvolvedor e somente em builds 
 Nunca recebe esse valor da UI. Python/core devem estar instalados nesse ambiente.
 Builds release recusam inspeção até haver sidecar empacotado; não distribuir esta
 fatia como instalador funcional. Nenhum caminho pessoal fica no código.
-Rust ausente no ambiente inicial: build nativo e teste do seletor ficam pendentes.
+A integração foi compilada e validada em macOS arm64/Rust 1.98.1. Seletor
+nativo → Python → React foi exercitado com a fixture sintética, incluindo
+cancelamento, Unicode/espaços, erro e layout 800×600. Cargo.lock versionado.
 
 ## Estado e armazenamento
 Estado discriminado: library → selecting → inspecting → ready ou error.
@@ -53,7 +58,7 @@ não representa nova logo. Substituir antes da distribuição.
 - [Capabilities e AppManifest](https://v2.tauri.app/security/capabilities/)
 
 ## Próximo incremento
-Validar cargo check/test e seletor nativo em macOS; em seguida integrar
+Gate de inspeção nativa fechado em macOS. Próximo incremento: integrar
 `ConversionPipeline.run` sem alterar o pipeline. Reinspecionar/snapshot na conversão;
 a seleção anterior não garante que o arquivo permaneceu igual. Não prometer
 editora/data/capa até estender e testar contratos e exportação Python.

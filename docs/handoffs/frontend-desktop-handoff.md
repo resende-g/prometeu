@@ -1,230 +1,122 @@
-# Prometeu Desktop — Handoff
+# Prometeu Desktop — Handoff atualizado
 
-## Momento
+## Segunda execução — fechamento prioritário
 Data: 2026-09-13. Branch: `feat/desktop-frontend`.
 Worktree: `.worktrees/desktop` do repositório principal.
-HEAD de implementação verificado: `3f25070`. O commit documental que contém este
-fechamento sucede esse HEAD; obter seu hash com `git rev-parse HEAD` na worktree.
+HEAD inicial: `c25618e`. Último commit antes deste fechamento: `d0970cb`.
+O usuário pediu fechamento imediato por restarem 5% de uso. Nenhum recurso novo
+será iniciado. Consultar `git log -3` para o commit que contém este fechamento.
 
-## Objetivo desta sessão
-Primeira fatia até biblioteca vazia, seleção/inspeção e metadados editáveis.
-Gates A–C concluídos; Gate D implementado nos componentes, porém ainda sem
-validação ponta a ponta no shell nativo. Gate E (conversão GUI) não iniciado.
-Gate F: verificações Python/frontend concluídas; Rust bloqueado por toolchain ausente.
+## Resultado decisivo
+Gate de inspeção nativa validado em macOS arm64:
+Tauri → seletor nativo → Python real → JSON/Channel → React.
+`sample.pdf` sintético apresentou nome, 2 páginas, tipo textual, título
+“Amostra sintética” e autor da fixture. Metadados puderam ser editados.
+Conversão GUI NÃO foi iniciada: esta execução foi dedicada a fechar a inspeção.
 
-## Estado encontrado e preservado
-Checkout inicial: `integration/mvp`, HEAD `325e209`, oito arquivos já modificados:
-README.md, SECURITY.md, docs/execution-status.md,
+## Preservação do checkout principal
+Não alterar a worktree principal `integration/mvp`, HEAD `325e209`, com oito diffs
+preexistentes: README.md, SECURITY.md, docs/execution-status.md,
 src/prometeu/cleaning/normalize.py, src/prometeu/structure/reconstruct.py,
 tests/integration/test_conversion.py, tests/unit/test_epub_builder.py,
-tests/unit/test_reconstruction_metadata.py. Alterações de reconstrução/normalização,
-regressões e documentação; autoria/sessão exata não comprovada.
+tests/unit/test_reconstruction_metadata.py.
+Todo trabalho desktop ocorreu na worktree isolada, baseada em `2582b4d`.
+Sem reset, clean, stash, restore, merge ou push. Core maduro não alterado.
 
-Encontrada candidata posterior `2582b4d` em `codex/gate-e-mvp` e origin, diferente
-da árvore suja inicial. Criada worktree limpa a partir dela, na branch solicitada.
-Não houve reset, stash, descarte, merge ou push. Os oito arquivos originais ficaram
-intocados: status/diffstat inicial e final iguais (418 inserções, 28 remoções).
-A documentação alterada nesta branch é a cópia isolada, não a cópia suja original.
+## Toolchain e dependências
+- Rust 1.98.1, cargo 1.98.1, rustup 1.29.1, aarch64-apple-darwin.
+- Instalação oficial via https://sh.rustup.rs, perfil minimal + rustfmt,
+  --no-modify-path. Usar `. "$HOME/.cargo/env"` no terminal.
+- Venv próprio da worktree, Python 3.11.16. Node 26.7.0/npm 11.19.0.
+- Cargo.lock gerado e versionado. Versões diretas fixadas.
+- MSRV declarado corrigido para 1.88 devido às transitivas time/time-core/time-macros;
+  build efetivamente testado em 1.98.1, não em uma segunda toolchain 1.88.
+- libc 0.2.189 (MIT OR Apache-2.0) promovida de transitiva a direta Unix para
+  terminação do grupo de processos. Licença conferida no manifest local.
+- Inventário completo: docs/dependencies.md. Sem dependência nova Python/JS.
 
-## Decisões arquiteturais
-React/TypeScript/Vite + CSS simples + Lucide; Tauri 2 apenas para janela, seleção
-e IPC. Python conserva toda a lógica de PDF/metadados. Sem banco/persistência
-antes de haver conversão GUI. Sem percentual fictício, arrastar/soltar ou controles
-que aparentem converter. Editora/data são rascunhos explícitos, pois o core só
-suporta título/autor/idioma/identificador. Capa fica como placeholder informativo.
+## Implementado nesta execução
+1. Compilação Tauri real, formatação Rust, Cargo.lock e permissão gerada pelo
+   AppManifest versionados. Nenhuma capability foi ampliada.
+2. Validação real de seletor, cancelamento inicial e de troca, preservação do
+   rascunho, troca/reseleção, nome Unicode/espaços e mensagem controlada de erro.
+3. Python/worker em grupo próprio Unix. Fechar janela ou sair durante inspeção
+   aciona cancelamento, encerra só o grupo possuído e recolhe o child antes de sair.
+   Timeout mantém o mesmo mecanismo. Nenhuma busca de processos por nome para kill.
+4. Teste Rust de árvore sintética: worker termina; processo não relacionado continua.
+5. Documentação de arquitetura, segurança, dependências e execução atualizada.
 
-## Implementado
-- Biblioteca vazia, wordmark PROMETEU, identidade em cinzas e privacidade visível.
-- Tela Nova conversão, nome/páginas/tipo, edição de cinco campos e observações.
-- Estados explícitos library/selecting/inspecting/ready/error; cancelar mantém
-  rascunho; trocar PDF/voltar descarta com aviso. Seleção concorrente bloqueada.
-- Estados textual/scanned/mixed/empty preservados do core. Sem promessa de OCR.
-- API pública `application.inspection.inspect_document(path, limits)`.
-- Bridge Python com JSON limitado, validação de pedido, erros sem stack/conteúdo.
-- Código de seletor nativo/Channel/IPC/execução Python no Rust e capability mínima.
-- Testes Python/React e teste Rust da fixture, este último ainda não executado.
-
-## Parcialmente implementado
-Shell e integração nativa escritos, sem build/teste manual. Interpretador em
-PROMETEU_PYTHON (absoluto, confiável, somente debug). Release recusa inspeção;
-sidecar/distribuição não resolvidos. Windows recusado na bridge porque o adapter
-existente usa mecanismos POSIX; não foi criada uma alternativa sem supervisão.
-
-## Ainda não iniciado
-Conversão GUI, capa, progresso por etapa de conversão, biblioteca JSON, busca,
-abrir/localizar EPUB, instaladores. Não há livro demo no fluxo de produção.
-
-## Arquivos criados
-- `apps/desktop/`: package.json/lock, HTML, tsconfig, Vite, ESLint, README e .gitignore.
-- `apps/desktop/src/`: App.tsx, desktop.ts, main.tsx, styles.css, dois arquivos de teste.
-- `apps/desktop/src-tauri/`: Cargo.toml, build.rs, tauri.conf.json,
-  capabilities/main.json, src/main.rs e icons/icon.png.
-- `src/prometeu/application/inspection.py`, `desktop_inspect.py`.
-- `tests/integration/test_desktop_inspection.py`.
-- `docs/frontend/architecture.md` e este handoff.
-
-## Arquivos alterados
-README.md, SECURITY.md e docs/dependencies.md, somente na worktree desktop.
-Nenhum módulo maduro do core foi alterado em relação à candidata `2582b4d`.
-
-## Dependências adicionadas
-Versões, finalidade, licença e necessidade de TODAS as dependências diretas estão
-na seção Desktop de `docs/dependencies.md`. Resumo:
-
-| Dependência | Versão | Licença |
-| --- | --- | --- |
-| React / React DOM | 19.3.0 | MIT |
-| TypeScript | 6.0.3 | Apache-2.0 |
-| Vite / plugin-react | 8.3.0 / 6.1.1 | MIT |
-| Lucide React | 1.45.0 | ISC |
-| Tauri API / CLI | 2.11.1 / 2.11.4 | Apache-2.0 OR MIT |
-| tauri / tauri-build / dialog | 2.11.5 / 2.6.3 / 2.7.3 | Apache-2.0 OR MIT |
-| serde / serde_json | 1.0.229 / 1.0.151 | MIT OR Apache-2.0 |
-| Vitest / Testing Library React | 5.0.0 / 16.3.3 | MIT |
-
-Também adicionados tipos, jsdom, user-event e lint conforme inventário completo.
-Licenças npm confirmadas em package.json/LICENSE locais; Rust em crates.io.
-TypeScript 7 foi rejeitado por conflito de peer; 6.0.3 instalado sem --force.
-package-lock.json versionado; Cargo.lock ainda não gerado. Nenhuma dependência
-Python adicionada, nem Node/React/Rust ao wheel. Avisos transitivos de distribuição
-nativa ainda precisam de revisão após resolução Cargo e antes de instaladores.
-
-## Integração com o core / contratos definidos
-`select_and_inspect_pdf(progress: Channel)` não recebe caminhos nem executáveis.
-Rust abre o diálogo e chama argv fixo `Python -I -m prometeu.application.desktop_inspect`.
-Stdin aceita somente `{ "path": caminho_absoluto_pdf }`, máximo 16 KiB.
-Resposta `{ok:true, inspection:{file_name,page_count,kind,metadata,warnings}}` ou
-`{ok:false,error:{code,message}}`; Rust limita leitura a 64 KiB e prazo a 130 s.
-Metadados title/author/language usam `resolve_metadata` existente. A API chama
-`PdfPlumberExtractor.inspect` com limites existentes (padrão 120 s, 50 MiB,
-500 páginas); não chama extract/reconstruct/export. Nenhum caminho absoluto é
-retornado à UI. Futura conversão precisa reinspecionar/snapshot, pois o arquivo
-pode mudar após a seleção.
-
-## Comandos executados
-- Inventário inicial/final: git branch/status/log/remote/diff/worktree, leituras com rg.
-- `git worktree add .worktrees/desktop -b feat/desktop-frontend 2582b4d`.
-- Ambiente Python próprio via uv venv e uv pip install -c constraints.txt -e '.[dev]'.
-- npm view e consulta crates.io para versões/licenças, npm install.
-- Comandos de testes abaixo; `npm exec tauri info`; Vite + navegador local.
-- Prévia e servidor temporários encerrados após verificação visual.
+## Evidência nativa
+- `npm run tauri -- dev`: compilou/lançou o binário real.
+- A ferramenta de acessibilidade não reconhecia o executável avulso. Foi criado
+  um invólucro LOCAL TEMPORÁRIO em `.cache/Prometeu Dev.app` apontando para o mesmo
+  `target/debug/prometeu-desktop`, com PROMETEU_PYTHON do venv desta worktree.
+  Não é instalador, não está no Git e não substitui IPC/Python por mocks.
+- sample.pdf selecionado pelo diálogo nativo; resultado real exibido no React.
+- Cópia idêntica “Amostra ação com espaços.pdf” também funcionou.
+- PDF sintético inválido mostrou “PDF inválido ou malformado.”, sem stack.
+- EMPTY real mostrou “Nenhum texto detectado”. SCANNED/MIXED cobertos nos testes
+  frontend existentes; não foram apresentados como OCR suportado.
+- Compilado também com `tauri build --debug --no-bundle` e override TEMPORÁRIO
+  `.cache/tauri-800.json`: janela 800×600, assets em tauri://localhost, CSP de produção,
+  Vite desligado. Inspeção e layout superior/inferior confirmados visualmente.
+- Fixture longa sintética: 500 páginas. Channel exibiu “Analisando seu documento”.
+  Observador local capturou app, bridge e worker ativos. Ao fechar a janela,
+  os 3 processos desapareceram, 5,1 s após a captura (inclui tempo da interação UI).
+  Evidência local: `.cache/lifecycle-observation.json`. Sem processo órfão observado.
+- App e Vite encerrados após as verificações.
 
 ## Testes executados
 ### Python
-- `.venv/bin/python -m ruff check .`: passou.
-- `.venv/bin/python -m ruff format --check .`: 48 arquivos conformes.
-- `.venv/bin/python -m mypy src/prometeu`: passou, 23 arquivos.
-- `.venv/bin/python -m pytest -q`: **123 passed**, 8,35 s.
-- Foco inicial dos testes novos: 14 passed, 3,78 s, incluindo bridge real com -I,
-  limite de entrada, pedidos inválidos, caminhos Unicode/com caracteres de shell,
-  cancelamento de extração proibida no teste e metadados inválidos.
-- `.venv/bin/python -m build`: wheel e sdist produzidos com sucesso.
-- CLI instalada `--help` e `convert tests/fixtures/sample.pdf -o <temporário>`:
-  sucesso; 2 páginas, 4 parágrafos, EPUB de 2.496 bytes; validação interna passou,
-  EPUBCheck NOT_RUN. Saída sintética temporária removida ao terminar a checagem.
-
+Ruff check, Ruff format --check, mypy src/prometeu: passaram.
+Última suíte: **123 passed**, 10,23 s. Nenhum módulo Python modificado nesta execução.
 ### Frontend
-`npm run lint`, `npm run typecheck`, `npm test`, `npm run build`: passaram.
-11 testes em 2 arquivos: vazio, seleção/edição, cancelamento, troca, progresso,
-SCANNED/MIXED/EMPTY, erro/retentativa, texto não confiável e prévia sem mock nativo.
-Build final: JS 235,72 kB (74,06 kB gzip), CSS 5,35 kB.
-Biblioteca/erro conferidos visualmente em 800×600, com rolagem vertical normal.
-Formulário validado por testes DOM; ainda não inspecionado visualmente no Tauri.
+npm run lint, npm run typecheck, npm test, npm run build: passaram.
+**11 testes**, 2 arquivos. Build final JS 235,72 kB (74,06 kB gzip), CSS 5,35 kB.
+### Rust
+cargo fmt --check e cargo check passaram sem warnings relevantes do aplicativo.
+cargo test padrão passou; o teste com venv é explicitamente ignorado por padrão.
+cargo test -- --include-ignored passou com **2 testes**, incluindo Python real e
+limpeza de processos (0,52 s). Reexecução final --locked após ajuste de MSRV está
+em andamento no momento desta gravação; registrar conclusão abaixo ao terminar.
+Build nativo debug com assets locais e --no-bundle passou (25,33 s).
 
-### Tauri / Rust
-`npm exec tauri info`: reconheceu a configuração; reportou ausência de cargo,
-rustc e rustup. Seu exit 0 é do diagnóstico, NÃO significa build nativo aprovado.
-Nenhuma toolchain grande instalada. Fontes oficiais confirmaram exigência de PNG
-RGBA em generate_context; placeholder transparente adicionado, sem nova logo.
-CSP dev permite inline para o preâmbulo/refresh Vite; produção permanece estrita.
+## Arquivos principais desta execução
+- apps/desktop/src-tauri/src/main.rs: supervisão/fechamento e teste.
+- apps/desktop/src-tauri/Cargo.toml e Cargo.lock: libc Unix e resolução fixa.
+- apps/desktop/src-tauri/build.rs: rustfmt.
+- apps/desktop/src-tauri/permissions/autogenerated/select_and_inspect_pdf.toml.
+- README.md, SECURITY.md, apps/desktop/README.md, docs/dependencies.md,
+  docs/frontend/architecture.md e este handoff.
 
-## Testes não executados
-cargo check, cargo fmt --check, cargo test, seletor/Channel/CSP no shell real,
-fechamento da janela durante inspeção, Linux/Windows, Python 3.12/3.13,
-EPUBCheck, instaladores e verificação com rede bloqueada pelo sistema operacional.
+## Ainda não implementado / riscos
+Conversão GUI, capa, biblioteca persistente, abrir/localizar EPUB e instaladores.
+Editora/data continuam rascunhos explícitos, não exportados pelo core.
+PROMETEU_PYTHON é configuração confiável de desenvolvimento; release ainda recusa
+inspeção até haver sidecar empacotado. Windows não suportado pelo adapter POSIX.
+Linux, término forçado/crash externo do app, EPUBCheck e distribuição não validados.
+Fechamento normal foi corrigido/testado; isso não é garantia de recuperação após
+SIGKILL no próprio app. PNG transparente ainda é placeholder técnico.
+Não houve teste da saída durante seletor modal aberto via Cmd+Q; cancelamento do
+seletor funciona. Não abrir novas permissões para resolver eventuais problemas.
 
-## Resultados / problemas conhecidos / riscos
-A fatia está commitada e testada nas partes disponíveis; NÃO é instalador pronto.
-Sem Rust não há garantia de compilação/funcionamento da integração nativa. Corrigir
-primeiro qualquer falha de cargo ou IPC antes de ampliar funcionalidade. Resolver e
-versionar Cargo.lock. Não há cancelamento de inspeção: fechar a janela pode deixar
-o Python terminar a operação; revisar ciclo de vida antes de distribuir.
-PNG transparente é requisito técnico temporário e precisa do asset oficial.
+## Git e continuidade
+Execução anterior: 1d37bca, e452d42, 3f25070, c25618e.
+Segunda execução: `d0970cb` — fix: validate Tauri desktop inspection bridge.
+O próximo commit preserva o ajuste de lifecycle e este fechamento.
+Nenhum push/merge. As versões antigas deste handoff estão no histórico Git.
 
-## Segurança e privacidade
-Somente fixtures sintéticas usadas. Nenhum livro preexistente foi lido/enviado.
-Sem telemetria, CDN, backend remoto, upload, shell genérico ou filesystem exposto.
-Uma capability da janela main permite só o comando específico. Sem logging integral
-de documentos ou persistência de PDFs. Instalação usou registries oficiais; o
-runtime criado não faz consultas externas. Adapter continua não sendo sandbox.
+## Como retomar exatamente
+1. Entrar em `.worktrees/desktop`; conferir branch/status/log; ler este handoff.
+2. Ler apps/desktop/README.md e docs/frontend/architecture.md.
+3. Ativar PATH do Rust. Em apps/desktop, definir
+   `PROMETEU_PYTHON="$(cd ../.. && pwd)/.venv/bin/python"`.
+4. `npm run tauri -- dev` abre o fluxo nativo já validado. Usar só fixtures sintéticas.
+5. Próximo menor incremento: conversão GUI mínima reutilizando ConversionPipeline.run,
+   com title/author/language/identifier já suportados; reinspecionar/snapshot na conversão.
+   Não começar biblioteca, capa, metadados adicionais ou instaladores junto.
 
-## Git
-Commits desta sessão, até o fechamento documental:
-- `1d37bca` docs: define desktop frontend architecture and handoff (antes da implementação).
-- `e452d42` feat: expose bounded desktop PDF inspection bridge.
-- `3f25070` feat: add desktop inspection UI and Tauri shell.
-Handoff atualizado entre Gates A/B, B/C, C/D e F; histórico está nos commits.
-Sem push ou merge. Checkout principal ainda em integration/mvp com os oito diffs.
-
-## Como retomar
-1. Entrar na worktree `.worktrees/desktop`; executar git status/log e ler este arquivo.
-2. Ler `apps/desktop/README.md` e `docs/frontend/architecture.md`.
-3. Com Rust estável e pré-requisitos Tauri disponíveis, na pasta apps/desktop:
-   definir PROMETEU_PYTHON para o Python absoluto do venv DESTA worktree;
-   executar cargo check/fmt/test pelos comandos do README; resolver Cargo.lock.
-4. `npm run tauri -- dev`; selecionar sample.pdf sintético, cancelar/trocar,
-   editar metadados, confirmar estágio real, mensagens e layout em 800×600.
-5. Só após esse fluxo validado, integrar ConversionPipeline.run com os campos
-   já suportados, sem duplicar lógica. Estender contratos Python antes de prometer
-   exportação de editora/data/capa; publicar saída com as garantias atuais do core.
-
-## Próximo menor incremento recomendado
-Compilar e exercitar o seletor + inspeção no Tauri, corrigir integração e versionar
-Cargo.lock. Depois, conversão real mínima pela GUI. Não começar biblioteca persistente
-ou instaladores antes disso.
-
-## Comando sugerido para a próxima sessão
-“Retome a worktree .worktrees/desktop, branch feat/desktop-frontend, lendo
-este handoff. Preserve o checkout principal sujo. Valide e corrija a integração
-Tauri/Python com a fixture sintética; não amplie o escopo antes de fechar esse fluxo.”
-
-## Segunda execução — início (2026-09-13)
-HEAD inicial: `c25618e0ba8f546f5f2797d9f27feb220309ba78`.
-Branch feat/desktop-frontend; worktree limpa. Objetivo: fechar compilação Tauri,
-seletor nativo e inspeção real da fixture até React antes de qualquer conversão.
-Rust/cargo/rustup continuam ausentes do PATH e ~/.cargo/bin. Node/npm disponíveis;
-Xcode Command Line Tools em /Library/Developer/CommandLineTools.
-Próxima ação: instalar Rust estável mínimo pela fonte oficial, incluindo rustfmt,
-sem alterar perfil do shell; compilar o scaffold existente e corrigir erros reais.
-Checkout principal não será alterado. Conversão permanece fora do trabalho ativo.
-
-### Segunda execução — toolchain instalado
-Rust 1.98.1, cargo 1.98.1, rustup 1.29.1 instalados para aarch64-apple-darwin
-via https://sh.rustup.rs, perfil minimal + rustfmt, --no-modify-path. Sem alteração
-de configuração do shell. Usar ~/.cargo/bin no PATH dos comandos de desenvolvimento.
-Python -I no cwd do intérprete deste venv retornou sample.pdf real (2 páginas,
-textual, título Amostra sintética). Suítes nesta execução: 123 testes Python e
-11 frontend passaram; lint/tipagem/build frontend e Ruff/mypy passaram.
-Fmt inicial encontrou apenas formatação; cargo fmt aplicado. cargo check em
-andamento, log local ignorado em .cache/cargo-check.log. Nenhuma conversão GUI.
-
-### Segunda execução — compilação aprovada
-cargo fmt --check passou após formatação; cargo check passou em 1m05s, sem erros
-ou warnings do aplicativo. Cargo.lock gerado. cargo test e teste explícito ignorado
-(que invoca Python real) em andamento. O seletor/IPC ainda precisam do teste visual
-nativo; não considerar o gate fechado apenas com compilação.
-
-### Segunda execução — inspeção nativa real aprovada parcialmente
-cargo test padrão passou (teste dependente de venv ignorado por configuração);
-cargo test -- --ignored passou: 1 teste real, 0,32 s. Tauri dev compilou/lançou.
-Para controle nativo por acessibilidade foi necessário um invólucro .app TEMPORÁRIO
-em .cache/Prometeu Dev.app, usando o MESMO target/debug/prometeu-desktop e o venv
-da worktree. Não é instalador, não está versionado e não muda IPC/core.
-Janela nativa aberta: seletor real abriu sample.pdf, Python real retornou ao React
-nome, 2 páginas, tipo textual, título Amostra sintética e autor da fixture.
-Edição de título/idioma, cancelamento inicial e cancelamento de troca preservando
-rascunho foram confirmados. Cópia sintética com espaços/Unicode também funcionou;
-PDF sintético inválido retornou mensagem controlada sem stack. Ferramenta de UI
-exigiu ação acessível `open` nos ícones do diálogo, em vez de clique simples.
-Faltam fechar verificação 800×600 e ciclo de vida em inspeção longa. Conversão GUI
-não iniciada. Nenhuma capability foi ampliada.
+## Prompt sugerido
+“Retome a worktree desktop lendo este handoff. O gate de inspeção nativa foi fechado.
+Preserve o checkout principal. Implemente somente conversão GUI mínima pelo pipeline
+Python existente, com saída segura e resultado explícito; não amplie outros recursos.”

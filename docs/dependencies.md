@@ -148,3 +148,21 @@ descartado antes da instalação por incompatibilidade com typescript-eslint;
 ESLint têm transitivas no lock; nenhum Playwright foi adicionado. Ícones e fontes
 externas não são baixados no runtime. Antes de empacotar instaladores, preservar
 licenças/avisos transitivos de todas as plataformas, como já exigido para o core.
+
+### Validação nativa — segunda execução (2026-09-13)
+
+Cargo.lock resolvido e versionado; Rust 1.98.1/cargo 1.98.1/rustup 1.29.1 instalados
+via fonte oficial, perfil mínimo com rustfmt, sem alterar o perfil do shell.
+A toolchain é apenas de desenvolvimento; não é dependência do pacote Python.
+O lock seleciona time/time-core/time-macros com MSRV 1.88, verificado nos manifests
+locais; Cargo.toml agora declara esse mínimo. O build foi testado com 1.98.1,
+não com uma segunda instalação de 1.88.
+
+| Dependência | Versão | Finalidade | Licença | Necessidade |
+| --- | --- | --- | --- | --- |
+| libc | 0.2.189 | Encerrar somente o grupo de processos possuído pelo app | MIT OR Apache-2.0 | Desktop Unix |
+
+libc já estava no lock como transitiva; tornou-se direta apenas em cfg(unix).
+Licença confirmada no Cargo.toml instalado do crate. Nenhuma nova dependência
+Python/JS, capability ou plugin de shell foi adicionado. Auditoria de avisos
+transitivos e empacotamento por plataforma continuam requisitos de distribuição.
