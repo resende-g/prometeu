@@ -92,3 +92,19 @@ Decisão: isolamento satisfaz preservação e fornece uma base limpa mais recent
 `docs/frontend/architecture.md` criado com escopo e contratos planejados.
 Rust ausente inclusive em ~/.cargo/bin; não instalar toolchain nesta execução.
 Fontes oficiais Tauri consultadas; versões/licenças npm consultadas antes de adicionar.
+
+## Atualização Gate B/C — API e telas
+HEAD documental: `1d37bca`. Criados application/inspection.py e desktop_inspect.py,
+e tests/integration/test_desktop_inspection.py. API reutiliza adapter e resolução
+de metadados existentes. CLI/pipeline/modelos não alterados. Bridge JSON limitado
+a 16 KiB, caminhos absolutos .pdf, sem ações genéricas; Windows recusado porque o
+adapter existente usa mecanismos POSIX. Erros não expõem caminho/conteúdo.
+Python: 14 testes novos passaram (3,78 s); mypy passou nos 23 arquivos de src.
+Ruff check/format dos três arquivos novos passou após ajuste de default imutável.
+Criados apps/desktop/package.json, tsconfig, Vite, ESLint, HTML, src/main.tsx,
+src/desktop.ts, App.tsx e styles.css. UI sem mocks de produção; conversão desativada
+com aviso explícito. Editora/data rascunhos; título/autor/idioma usam core.
+Instalação npm inicial falhou: TypeScript 7 incompatível com typescript-eslint
+(<6.1). Resolver escolhendo TypeScript compatível, sem --force/legacy-peer-deps.
+Tauri ainda em elaboração; frontend ainda não testado. Ambiente Python próprio da
+worktree criado com uv e instalação -c constraints.txt -e '.[dev]' concluída.
