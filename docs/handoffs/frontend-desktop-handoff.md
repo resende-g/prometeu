@@ -187,3 +187,44 @@ ou instaladores antes disso.
 “Retome a worktree .worktrees/desktop, branch feat/desktop-frontend, lendo
 este handoff. Preserve o checkout principal sujo. Valide e corrija a integração
 Tauri/Python com a fixture sintética; não amplie o escopo antes de fechar esse fluxo.”
+
+## Segunda execução — início (2026-09-13)
+HEAD inicial: `c25618e0ba8f546f5f2797d9f27feb220309ba78`.
+Branch feat/desktop-frontend; worktree limpa. Objetivo: fechar compilação Tauri,
+seletor nativo e inspeção real da fixture até React antes de qualquer conversão.
+Rust/cargo/rustup continuam ausentes do PATH e ~/.cargo/bin. Node/npm disponíveis;
+Xcode Command Line Tools em /Library/Developer/CommandLineTools.
+Próxima ação: instalar Rust estável mínimo pela fonte oficial, incluindo rustfmt,
+sem alterar perfil do shell; compilar o scaffold existente e corrigir erros reais.
+Checkout principal não será alterado. Conversão permanece fora do trabalho ativo.
+
+### Segunda execução — toolchain instalado
+Rust 1.98.1, cargo 1.98.1, rustup 1.29.1 instalados para aarch64-apple-darwin
+via https://sh.rustup.rs, perfil minimal + rustfmt, --no-modify-path. Sem alteração
+de configuração do shell. Usar ~/.cargo/bin no PATH dos comandos de desenvolvimento.
+Python -I no cwd do intérprete deste venv retornou sample.pdf real (2 páginas,
+textual, título Amostra sintética). Suítes nesta execução: 123 testes Python e
+11 frontend passaram; lint/tipagem/build frontend e Ruff/mypy passaram.
+Fmt inicial encontrou apenas formatação; cargo fmt aplicado. cargo check em
+andamento, log local ignorado em .cache/cargo-check.log. Nenhuma conversão GUI.
+
+### Segunda execução — compilação aprovada
+cargo fmt --check passou após formatação; cargo check passou em 1m05s, sem erros
+ou warnings do aplicativo. Cargo.lock gerado. cargo test e teste explícito ignorado
+(que invoca Python real) em andamento. O seletor/IPC ainda precisam do teste visual
+nativo; não considerar o gate fechado apenas com compilação.
+
+### Segunda execução — inspeção nativa real aprovada parcialmente
+cargo test padrão passou (teste dependente de venv ignorado por configuração);
+cargo test -- --ignored passou: 1 teste real, 0,32 s. Tauri dev compilou/lançou.
+Para controle nativo por acessibilidade foi necessário um invólucro .app TEMPORÁRIO
+em .cache/Prometeu Dev.app, usando o MESMO target/debug/prometeu-desktop e o venv
+da worktree. Não é instalador, não está versionado e não muda IPC/core.
+Janela nativa aberta: seletor real abriu sample.pdf, Python real retornou ao React
+nome, 2 páginas, tipo textual, título Amostra sintética e autor da fixture.
+Edição de título/idioma, cancelamento inicial e cancelamento de troca preservando
+rascunho foram confirmados. Cópia sintética com espaços/Unicode também funcionou;
+PDF sintético inválido retornou mensagem controlada sem stack. Ferramenta de UI
+exigiu ação acessível `open` nos ícones do diálogo, em vez de clique simples.
+Faltam fechar verificação 800×600 e ciclo de vida em inspeção longa. Conversão GUI
+não iniciada. Nenhuma capability foi ampliada.

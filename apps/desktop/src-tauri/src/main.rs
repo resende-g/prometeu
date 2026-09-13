@@ -11,7 +11,8 @@ use std::{
 use tauri::{ipc::Channel, State};
 use tauri_plugin_dialog::DialogExt;
 
-const BRIDGE_ERROR: &str = "Não foi possível executar a inspeção local. Verifique a instalação do Prometeu.";
+const BRIDGE_ERROR: &str =
+    "Não foi possível executar a inspeção local. Verifique a instalação do Prometeu.";
 const MAX_REPLY: u64 = 64 * 1024;
 
 #[derive(Deserialize, Serialize)]
@@ -59,9 +60,11 @@ fn inspect(path: PathBuf) -> Result<Inspection, String> {
     let python = std::env::var_os("PROMETEU_PYTHON")
         .map(PathBuf::from)
         .filter(|path| path.is_absolute() && path.is_file())
-        .ok_or("Configure PROMETEU_PYTHON com o caminho absoluto do Python com Prometeu instalado.")?;
-    let request = serde_json::to_vec(&serde_json::json!({ "path": path }))
-        .map_err(|_| BRIDGE_ERROR)?;
+        .ok_or(
+            "Configure PROMETEU_PYTHON com o caminho absoluto do Python com Prometeu instalado.",
+        )?;
+    let request =
+        serde_json::to_vec(&serde_json::json!({ "path": path })).map_err(|_| BRIDGE_ERROR)?;
     if request.len() > 16 * 1024 {
         return Err("O caminho do PDF é longo demais.".into());
     }
@@ -76,7 +79,13 @@ fn inspect(path: PathBuf) -> Result<Inspection, String> {
         .spawn()
         .map_err(|_| BRIDGE_ERROR)?;
     // Pipes são criados acima. Fechar stdin entrega EOF ao protocolo de uma requisição.
-    if child.stdin.take().expect("stdin piped").write_all(&request).is_err() {
+    if child
+        .stdin
+        .take()
+        .expect("stdin piped")
+        .write_all(&request)
+        .is_err()
+    {
         let _ = child.kill();
         let _ = child.wait();
         return Err(BRIDGE_ERROR.into());
@@ -84,7 +93,10 @@ fn inspect(path: PathBuf) -> Result<Inspection, String> {
     let stdout = child.stdout.take().expect("stdout piped");
     let reader = std::thread::spawn(move || {
         let mut bytes = Vec::new();
-        stdout.take(MAX_REPLY + 1).read_to_end(&mut bytes).map(|_| bytes)
+        stdout
+            .take(MAX_REPLY + 1)
+            .read_to_end(&mut bytes)
+            .map(|_| bytes)
     });
     let started = Instant::now();
     let status = loop {
@@ -100,7 +112,10 @@ fn inspect(path: PathBuf) -> Result<Inspection, String> {
             }
         }
     };
-    let bytes = reader.join().map_err(|_| BRIDGE_ERROR)?.map_err(|_| BRIDGE_ERROR)?;
+    let bytes = reader
+        .join()
+        .map_err(|_| BRIDGE_ERROR)?
+        .map_err(|_| BRIDGE_ERROR)?;
     let status = status?;
     if bytes.len() as u64 > MAX_REPLY {
         return Err(BRIDGE_ERROR.into());
@@ -119,11 +134,18 @@ async fn select_and_inspect_pdf(
     progress: Channel<String>,
     busy: State<'_, AtomicBool>,
 ) -> Result<Option<Inspection>, String> {
-    if busy.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+    if busy
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
         return Err("Uma inspeção já está em andamento.".into());
     }
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let selected = app.dialog().file().add_filter("PDF", &["pdf"]).blocking_pick_file();
+        let selected = app
+            .dialog()
+            .file()
+            .add_filter("PDF", &["pdf"])
+            .blocking_pick_file();
         match selected {
             None => Ok(None),
             Some(file) => {
@@ -132,7 +154,8 @@ async fn select_and_inspect_pdf(
                 inspect(path).map(Some)
             }
         }
-    }).await;
+    })
+    .await;
     busy.store(false, Ordering::SeqCst);
     result.map_err(|_| BRIDGE_ERROR.to_string())?
 }
