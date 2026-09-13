@@ -108,3 +108,32 @@ Instalação npm inicial falhou: TypeScript 7 incompatível com typescript-eslin
 (<6.1). Resolver escolhendo TypeScript compatível, sem --force/legacy-peer-deps.
 Tauri ainda em elaboração; frontend ainda não testado. Ambiente Python próprio da
 worktree criado com uv e instalação -c constraints.txt -e '.[dev]' concluída.
+
+## Atualização Gate C/D — integração escrita, validação em andamento
+HEAD: `e452d42` (bridge/API Python testados e commitados).
+Frontend instalado com TypeScript 6.0.3; npm install concluiu (230 pacotes).
+Tauri configurado com um comando específico e AppManifest/capability main, seletor
+nativo Rust, Channel de início de inspeção, exclusão mútua, argv fixo, stdin JSON,
+resposta limitada a 64 KiB e prazo externo de 130 s. Sem Rust instalado: código
+nativo ainda NÃO compilado/executado. Teste Rust da fixture adicionado e marcado
+ignore por requerer configuração do Python; executar explicitamente na retomada.
+React tem máquina de estados, cancelar preserva rascunho, troca/volta descarta com
+aviso. Tipos mantêm textual/scanned/mixed/empty do core. Testes de UI escritos;
+rodando lint/typecheck/test/build. Suite Python completa em andamento.
+Não iniciar Gate E nesta execução: completar testes, documentação e preservar a
+fatia antes de qualquer conversão GUI.
+
+## Atualização Gate F — resultados confirmados
+Python completo: Ruff check passou; format --check passou (48 arquivos); mypy
+passou (23 arquivos); pytest 123 passed em 8,35 s. Frontend: ESLint, tsc, 11 testes
+Vitest (2 arquivos) e build Vite passaram. Build: JS 235,72 kB (74,07 kB gzip), CSS
+5,35 kB. Visual: biblioteca e erro de prévia conferidos por navegador local em
+800×600, com rolagem vertical sem sobreposição. Formulário conferido por testes
+DOM, ainda não visualmente no shell. npm exec tauri info detectou configuração,
+mas confirmou ausência de rustc, cargo e rustup; não confundir exit 0 do diagnóstico
+com build nativo aprovado.
+Corrigidos preventivamente dois requisitos do scaffold via fonte oficial/local:
+PNG RGBA obrigatório para generate_context (placeholder transparente, sem nova logo)
+e preâmbulo inline React/Vite permitido somente na CSP dev. Licenças diretas npm
+conferidas nos metadados/arquivos locais; Rust consultado no crates.io. Dependências
+documentadas. Build Python e smoke da CLI em andamento antes do fechamento.

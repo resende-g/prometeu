@@ -10,7 +10,8 @@ core. Conversão, capa, persistência e abertura de saídas ainda não implement
 Nenhuma ação de conversão fictícia. Sem extração completa para preencher a tela.
 
 ## Fronteira
-Um único comando IPC sem argumentos: `select_and_inspect_pdf`. O seletor nativo
+Um único comando IPC: `select_and_inspect_pdf`, com um Channel de progresso e
+sem parâmetros de caminho ou comando. O seletor nativo
 fica no Rust; JavaScript não fornece caminhos, executáveis nem comandos. Rust
 inicia o Python por argv fixo (`-I -m prometeu.application.desktop_inspect`) e envia
 um objeto JSON em stdin. Esse módulo só aceita inspeção e reutiliza a API pública.
@@ -18,7 +19,8 @@ Parsing continua em Python com os limites e supervisão existentes. O adapter é
 isolamento de processo, não sandbox; seu suporte atual é macOS/Linux.
 
 Apenas a janela main possui a permissão do comando. Não há plugin shell, filesystem,
-HTTP ou opener exposto ao JavaScript. CSP local, sem origens remotas; servidor Vite
+HTTP ou opener exposto ao JavaScript. CSP local, sem origens remotas; script/style inline somente na CSP de
+desenvolvimento para o refresh do Vite. Produção mantém CSP estrita. Servidor Vite
 somente em loopback durante desenvolvimento. Metadados renderizados como texto.
 
 ## Desenvolvimento e distribuição
@@ -43,6 +45,8 @@ Sem conta, backend remoto, telemetria, fontes/CDNs ou consultas bibliográficas.
 Instalação de dependências pode usar rede; inspeção e uso instalado não precisam.
 A CLI e o wheel Python permanecem independentes de Node/Rust/React.
 Wordmark PROMETEU provisório; futuro asset oficial em `apps/desktop/src/assets/`.
+O PNG transparente em src-tauri/icons é somente requisito de generate_context;
+não representa nova logo. Substituir antes da distribuição.
 
 ## Fontes técnicas consultadas
 - [Diálogo nativo Tauri](https://v2.tauri.app/plugin/dialog/)

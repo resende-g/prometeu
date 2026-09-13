@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "A janela principal pode apenas selecionar e inspecionar um PDF local.",
+  "windows": ["main"],
+  "permissions": ["allow-select-and-inspect-pdf"]
+}

@@ -34,7 +34,7 @@ prova compatibilidade Kindle. Consulte [execução](docs/execution-status.md) e
 
 O Gate E ainda requer revisão independente. EPUBCheck, Kindle, Linux, Python
 3.12/3.13 e workflow remoto permanecem não verificados. OCR, notas de rodapé,
-layouts multicoluna, imagens, IA, GUI e associação de notas estão fora do escopo.
+layouts multicoluna, imagens, IA e associação de notas estão fora do escopo.
 
 ## Desenvolvimento
 
@@ -56,3 +56,14 @@ prometeu convert --help
 Consulte [contratos](docs/architecture.md), [dependências](docs/dependencies.md),
 [segurança](SECURITY.md) e [contribuição](CONTRIBUTING.md).
 Os documentos PDF preexistentes não são fixtures autorizadas para redistribuição.
+
+## Desktop — prévia em desenvolvimento
+
+Primeira interface adicional em `apps/desktop`: biblioteca vazia, seleção nativa
+e inspeção de PDF pelo core, metadados editáveis. Ainda não converte pela GUI
+nem persiste a biblioteca. Frontend e bridge Python testados; build/seletor nativos
+ainda não verificados por ausência de Rust no ambiente desta implementação.
+
+A CLI continua independente de Node/React/Rust. Consulte
+[instruções desktop](apps/desktop/README.md), [arquitetura](docs/frontend/architecture.md)
+e [handoff](docs/handoffs/frontend-desktop-handoff.md).

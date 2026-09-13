@@ -57,3 +57,27 @@ elevados. Não se promete remoção de temporários após falha irrecuperável d
 Não há canal privado de reporte configurado nem contato de segurança inventado.
 Antes de divulgar uma vulnerabilidade, combine um canal com o mantenedor; não
 publique documentos privados nem detalhes desnecessários de exploração.
+
+
+## Fronteira desktop experimental
+
+A GUI de desenvolvimento tem um único comando IPC, `select_and_inspect_pdf`,
+permitido somente à janela principal. A seleção ocorre no diálogo nativo; o
+frontend não fornece caminhos ou executáveis. O Rust chama Python por argv fixo
+e envia JSON em stdin (16 KiB), recebe até 64 KiB e impõe prazo externo de 130 s;
+o worker Python mantém os limites existentes (padrão 120 s). Há uma inspeção por vez.
+Nenhum shell, filesystem genérico, abertura arbitrária de arquivos ou plugin de
+rede é exposto. Conteúdo de metadados é renderizado como texto no React.
+
+PROMETEU_PYTHON é configuração confiável do desenvolvedor em builds debug; não
+aceita valor da UI. Release recusa inspeção até existir sidecar empacotado.
+A CLI/bridge e o parser não são uma sandbox. O core atual depende de mecanismos
+POSIX; a bridge recusa Windows, sem reduzir silenciosamente a supervisão.
+Não há persistência documental/biblioteca nesta fatia, apenas rascunho em memória.
+O runtime não adiciona tráfego de rede; o Vite de desenvolvimento usa loopback.
+
+O shell Rust ainda não foi compilado nem exercitado no diálogo nativo. Validar
+CSP, capabilities, fluxo completo e encerramento da janela durante inspeção
+antes de considerar a GUI pronta. A CSP de produção é estrita; a de desenvolvimento
+permite inline para o refresh React/Vite, sem origens remotas. Empacotamento,
+assinatura, resolução Cargo.lock e revisão de transitivas nativas ficam pendentes.
