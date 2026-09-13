@@ -32,10 +32,13 @@ Na Wave 1, inspeção e extração usam subprocessos encerrados e recolhidos pel
 supervisor em timeout, excesso de memória ou IPC. No macOS, o controle de memória
 é RSS por libproc, amostrado nominalmente a cada 20 ms; não é uma reserva rígida
 e pode haver excesso entre amostras. RLIMIT_CPU limita o worker; RLIMIT_AS só é
-usado no Linux. Linux ainda não foi executado nesta retomada. A aplicação requer
-o processo principal em macOS/Linux para o prazo por SIGALRM. O prazo inclui
-snapshot, processamento, validação e fsync, terminando antes da publicação atômica;
-não há garantia de prazo para um syscall de filesystem bloqueado pelo sistema.
+usado no Linux. A matriz final executou Linux real em container somente leitura,
+sem rede, limitado por cgroup a 2 GiB, 2 CPUs e 256 processos; isso comprova o
+comportamento observado nessa configuração, não constitui sandbox contra kernel ou
+runtime comprometido. A aplicação requer o processo principal em macOS/Linux para
+o prazo por SIGALRM. O prazo inclui snapshot, processamento, validação e fsync,
+terminando antes da publicação atômica; não há garantia de prazo para um syscall de
+filesystem bloqueado pelo sistema.
 
 A entrada é aberta, verificada e copiada para diretório privado. A publicação
 sem sobrescrita usa `os.link`: um destino concorrente nunca é substituído.
@@ -48,11 +51,13 @@ do namespace por outro processo com permissão de escrita. Para coordenação
 estrita entre escritores, use saída distinta e sem `--force`.
 
 O validador reabre o ZIP com limites de tamanho/entradas, proíbe DTD, entidades,
-instruções de processamento e conteúdo fora do perfil XHTML/CSS gerado.
-EPUBCheck e revisão independente de segurança ainda não foram executados.
-O estado verificado está em docs/execution-status.md. Vulnerabilidades desconhecidas de
-dependências continuam possíveis; processamento nunca deve ocorrer com privilégios
-elevados. Não se promete remoção de temporários após falha irrecuperável do sistema.
+instruções de processamento e conteúdo fora do perfil XHTML/CSS gerado. A revisão
+independente do diff terminou sem bloqueantes, e o artefato sintético passou no
+EPUBCheck 5.3.0 e no Kindle Previewer 4.0.0. Essas evidências não substituem uma
+auditoria de segurança nem provam ausência de vulnerabilidades. O estado verificado
+está em docs/execution-status.md. Vulnerabilidades desconhecidas de dependências
+continuam possíveis; processamento nunca deve ocorrer com privilégios elevados.
+Não se promete remoção de temporários após falha irrecuperável do sistema.
 
 Não há canal privado de reporte configurado nem contato de segurança inventado.
 Antes de divulgar uma vulnerabilidade, combine um canal com o mantenedor; não
@@ -61,27 +66,33 @@ publique documentos privados nem detalhes desnecessários de exploração.
 
 ## Fronteira desktop experimental
 
-A GUI de desenvolvimento tem um único comando IPC, `select_and_inspect_pdf`,
-permitido somente à janela principal. A seleção ocorre no diálogo nativo; o
-frontend não fornece caminhos ou executáveis. O Rust chama Python por argv fixo
-e envia JSON em stdin (16 KiB), recebe até 64 KiB e impõe prazo externo de 130 s;
-o worker Python mantém os limites existentes (padrão 120 s). Há uma inspeção por vez.
+A GUI de desenvolvimento expõe somente `select_and_inspect_pdf`,
+`convert_selected_pdf` e `reveal_epub` à janela principal. Entrada e destino são
+escolhidos por diálogos nativos e mantidos no Rust; o frontend não fornece caminhos
+ou executáveis. Título, autor, idioma e identificador vindos do React são tratados
+como input não confiável e revalidados no bridge e no core. O Rust chama módulos
+Python por argv fixo, envia JSON limitado a 32 KiB, recebe até 64 KiB e impõe prazo
+externo de 130 s; o pipeline mantém os limites existentes (padrão 120 s). Há uma
+operação por vez.
 Em Unix, Python e worker pertencem a grupo próprio. Fechamento normal da janela,
 saída e timeout encerram somente esse grupo, recolhem o child direto e então
 permitem a saída do app. Nenhum PID é descoberto por nome para enviar sinais.
 Nenhum shell, filesystem genérico, abertura arbitrária de arquivos ou plugin de
-rede é exposto. Conteúdo de metadados é renderizado como texto no React.
+rede é exposto. No macOS, localizar usa `/usr/bin/open -R` somente com o último
+caminho publicado e retido no Rust. A conversão nunca solicita sobrescrita.
+Conteúdo de metadados é renderizado como texto no React.
 
 PROMETEU_PYTHON é configuração confiável do desenvolvedor em builds debug; não
-aceita valor da UI. Release recusa inspeção até existir sidecar empacotado.
+aceita valor da UI. Release recusa inspeção e conversão até existir sidecar empacotado.
 A CLI/bridge e o parser não são uma sandbox. O core atual depende de mecanismos
 POSIX; a bridge recusa Windows, sem reduzir silenciosamente a supervisão.
-Não há persistência documental/biblioteca nesta fatia, apenas rascunho em memória.
+Não há persistência documental/biblioteca nesta fatia, apenas rascunho e caminhos
+da sessão em memória.
 O runtime não adiciona tráfego de rede; o Vite de desenvolvimento usa loopback.
 
 O shell foi compilado e exercitado em macOS arm64, com fixture sintética real
-e caminho Unicode/espaços. CSP, capability específica, retorno por IPC/Channel
-e fechamento durante inspeção foram verificados. O teste de processos confirma
+e caminho Unicode/espaços. CSP, capabilities específicas, retorno por IPC/Channel,
+conversão, EPUBCheck e localização no Finder foram verificados. O teste de processos confirma
 que a terminação do grupo preserva um processo não relacionado. Esses testes
 não garantem recuperação após término forçado externo/crash do próprio app. A CSP de produção é estrita; a de desenvolvimento
 permite inline para o refresh React/Vite, sem origens remotas. Empacotamento,

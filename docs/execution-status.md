@@ -1,54 +1,61 @@
-# Prometeu — estado de execução local
+# Prometeu — estado de execução
 
-Data: 2026-09-11. HEAD `325e209`, destacado. Gates B–D fechados por evidência local;
-Gate E aguarda revisão independente. Nenhum commit foi criado nesta retomada.
-Comandos, contagens e limites estão em [gates.md](gates.md).
+Data: 2026-09-11. Branch `codex/gate-e-mvp`; código verificado no commit
+`2582b4de371de859d7ac41b106d7eb480304ea2d`.
 
-## Estado comprovado
+## Estado final
+
+**Gates A–E: 5/5. MVP: 100% do escopo definido.**
 
 | Gate | Estado | Evidência principal |
 | --- | --- | --- |
-| A | Histórico concluído | Bootstrap: 9 testes e build com setuptools 84.0.0 em 2026-09-07 |
-| B | Fechado localmente | Pipeline textual, validação interna e publicação atômica; foco 10 passed |
-| C | Fechado localmente | Continuidade conservadora, H1/H2/H3, capítulos e TOC; foco 3 passed |
-| D | Fechado localmente | Margens, paginação, deshifenização ASCII, NFC semântico e E2E; foco 4 passed |
-| E | Pendente | Revisão independente e verificações externas/multiplataforma |
+| A | Concluído | Bootstrap, contratos e build fixado |
+| B | Concluído | Pipeline textual, validação interna e publicação atômica |
+| C | Concluído | Continuidade, H1/H2/H3, capítulos, anchors e TOC |
+| D | Concluído | Margens, paginação, deshifenização e NFC semântico |
+| E | Concluído | Revisão independente e toda a matriz local/externa |
 
-A verificação conjunta atual passou com 104 testes, Ruff lint e format check, mypy
-em 21 arquivos, os dois helps da CLI e `git diff --check`.
+## Evidência final
 
-## Evidência funcional dos Gates B–D
+| Verificação | Numerador/denominador ou contagem | Exit code | Resultado |
+| --- | ---: | ---: | --- |
+| macOS/Python 3.11.16 | 109/109 testes | 0 | Passou |
+| macOS/Python 3.12.14 | 109/109 testes | 0 | Passou |
+| macOS/Python 3.13.15 | 109/109 testes | 0 | Passou |
+| Ruff 0.16.6 | 44 arquivos; 0 achados | 0 | Passou |
+| mypy 2.3.1 | 21 arquivos; 0 erros | 0 | Passou |
+| Build 1.6.0/setuptools 84.0.0 | wheel + sdist | 0 | Passou |
+| Wheel limpo/Python 3.13.15 | import + 2/2 helps | 0 | Passou |
+| Linux/Python 3.12.13 | 109/109 testes + ferramentas | 0 | Passou |
+| EPUBCheck 5.3.0 | 0 erros; 0 warnings | 0 | Passou |
+| Kindle Previewer 4.0.0 | 0 erros; 0 problemas de qualidade | 0 | Passou |
+| GitHub Actions | 6/6 jobs | 0 | Passou |
+| Revisão independente | 7/7 contraprovas finais | — | Zero bloqueantes |
 
-- Gate B: PDF textual simples percorre inspeção e extração supervisionadas, modelos
-  físico e semântico, builder EPUB, validação interna, fsync e publicação. Falhas
-  antes da publicação preservam o destino.
-- Gate C: continuidade incerta não é unida; H1 inicia capítulo, H2/H3 permanecem em
-  ordem e o TOC reproduz a hierarquia com anchors válidos.
-- Gate D: margens recorrentes, paginação decimal marginal e paginação decorada
-  sequenciada são removidas conservadoramente. Deshifenização exige `-` ASCII e
-  corroboração no texto físico. NFC altera somente o texto dos runs semânticos;
-  `PhysicalDocument` permanece como evidência original.
+O Linux foi executado em Alpine 3.23.5/aarch64, container somente leitura e sem
+rede, com cgroup de 2 GiB, 2 CPUs e 256 processos. O Kindle abriu o KPF e confirmou
+capítulos, ordem, TOC H1/H2/H3, Unicode, negrito, itálico e conteúdo limpo. O aviso
+W14016 de capa ausente é não bloqueante; capas e imagens estão fora do MVP.
 
-A regressão sintética ponta a ponta comprova 12 linhas físicas → 4 parágrafos,
-6 linhas removidas e 1 deshifenização. `Conteu\u0301do` permanece no PDF/modelo
-físico; `Conteúdo` aparece no modelo semântico e no XHTML.
+O workflow hospedado
+[34642131348](https://github.com/resende-g/prometeu/actions/runs/34642131348)
+executou em Ubuntu e macOS com Python 3.11, 3.12 e 3.13, sobre exatamente o SHA
+`2582b4de371de859d7ac41b106d7eb480304ea2d`. Os seis jobs concluíram com
+`success`.
 
-## Limitação de build
+Comandos, versões, hashes dos artefatos e limites observados estão detalhados em
+[gates.md](gates.md).
 
-O build normal passou em execução anterior com setuptools 84.0.0. Nesta retomada,
-o venv reutilizado contém setuptools 79.0.1, enquanto `pyproject.toml` exige
-84.0.0. `python -m build --no-isolation` falha por essa divergência; sem rede e sem
-alterar o ambiente externo, wheel e sdist foram gerados com
-`python -m build --no-isolation --skip-dependency-check`. Esse resultado comprova
-o empacotamento local disponível, não o backend fixado.
+## Escopo encerrado
 
-## Não verificado e fora de escopo
+O MVP converte PDF textual simples, de uma coluna, em EPUB 3 reflowable. OCR, notas
+de rodapé, layouts multicoluna, imagens, IA, GUI e associação de notas permanecem
+fora do escopo. A validação do EPUB sintético não generaliza para todo PDF
+arbitrário, e o adapter não constitui sandbox.
 
-Não verificados: EPUBCheck, Kindle, Linux, Python 3.12/3.13, workflow remoto e
-revisão independente. Fora de escopo: OCR, notas de rodapé, layouts multicoluna,
-imagens, IA, GUI e associação de notas.
+## Estado Git
 
-## Próxima etapa
-
-Gate E: revisão independente do diff e das evidências, sem ampliar o escopo dos
-Gates B–D.
+O commit de código verificado foi enviado a `origin/codex/gate-e-mvp`; esta
+consolidação documental registra as evidências obtidas depois dele.
+`docs/handoff-next-slice.md` continua não rastreado e intacto por descrever o
+estado anterior a `2582b4d`.
