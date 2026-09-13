@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, FileText, LockKeyhole, Plus, TriangleAlert, Upload } from 'lucide-react';
-import { selectAndInspect } from './desktop';
-import type { Inspection } from './desktop';
+import { convertSelected, revealEpub, selectAndInspect } from './desktop';
+import type { Conversion, ConversionMetadata, Inspection } from './desktop';
 
-type Metadata = { title: string; author: string; language: string; publisher: string; date: string };
 type State =
   | { phase: 'library' | 'selecting' | 'inspecting' }
-  | { phase: 'ready'; inspection: Inspection; metadata: Metadata }
-  | { phase: 'error'; message: string };
+  | { phase: 'ready' | 'choosing-output' | 'converting'; inspection: Inspection; metadata: ConversionMetadata }
+  | { phase: 'success'; conversion: Conversion }
+  | { phase: 'inspection-error'; message: string }
+  | { phase: 'conversion-error'; message: string; inspection: Inspection; metadata: ConversionMetadata };
 
 const unsupported = {
   scanned: ['Documento digitalizado', 'Este PDF contém conteúdo visual sem texto extraível. O Prometeu ainda não oferece OCR para este tipo de documento.'],
@@ -19,7 +20,7 @@ export default function App() {
   const [state, setState] = useState<State>({ phase: 'library' });
   const inFlight = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
-  const busy = state.phase === 'selecting' || state.phase === 'inspecting';
+  const busy = ['selecting', 'inspecting', 'choosing-output', 'converting'].includes(state.phase);
 
   useEffect(() => { heading.current?.focus(); }, [state.phase]);
 
@@ -33,18 +34,40 @@ export default function App() {
       setState(inspection ? {
         phase: 'ready', inspection,
         metadata: { title: inspection.metadata.title, author: inspection.metadata.author ?? '',
-          language: inspection.metadata.language, publisher: '', date: '' },
+          language: inspection.metadata.language, identifier: '' },
       } : previous);
     } catch (error) {
-      setState({ phase: 'error', message: error instanceof Error ? error.message : 'Não foi possível inspecionar este PDF.' });
+      setState({ phase: 'inspection-error', message: error instanceof Error ? error.message : 'Não foi possível inspecionar este PDF.' });
     } finally {
       inFlight.current = false;
     }
   }
 
-  function edit(field: keyof Metadata, value: string) {
+  function edit(field: keyof ConversionMetadata, value: string) {
     setState(current => current.phase === 'ready'
       ? { ...current, metadata: { ...current.metadata, [field]: value } } : current);
+  }
+
+  async function convertPdf(inspection: Inspection, metadata: ConversionMetadata) {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setState({ phase: 'choosing-output', inspection, metadata });
+    try {
+      const conversion = await convertSelected(metadata, () => setState({ phase: 'converting', inspection, metadata }));
+      setState(conversion ? { phase: 'success', conversion } : { phase: 'ready', inspection, metadata });
+    } catch (error) {
+      setState({ phase: 'conversion-error', inspection, metadata, message: error instanceof Error ? error.message : 'Não foi possível converter este PDF.' });
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
+  async function reveal() {
+    try {
+      await revealEpub();
+    } catch (error) {
+      setState({ phase: 'inspection-error', message: error instanceof Error ? error.message : 'Não foi possível localizar o EPUB.' });
+    }
   }
 
   return (
@@ -68,21 +91,33 @@ export default function App() {
             <p className="small muted">PDFs com texto selecionável · Sem OCR</p>
             <div className="format-path"><span><FileText aria-hidden="true" size={16} />PDF</span><ArrowRight aria-hidden="true" size={16} /><span><BookOpen aria-hidden="true" size={16} />EPUB</span></div>
           </section>
-          <p className="scope-note">Nesta prévia, você pode inspecionar um PDF e revisar os metadados. A conversão e o armazenamento de livros ainda não estão disponíveis.</p>
+          <p className="scope-note">Nesta prévia, você pode inspecionar e converter um PDF textual. A biblioteca persistente ainda não está disponível.</p>
         </> : <>
-          {!busy && <button className="back" onClick={() => setState({ phase: 'library' })}><ArrowLeft aria-hidden="true" size={17} />Biblioteca</button>}
+          {!busy && state.phase !== 'success' && <button className="back" onClick={() => setState({ phase: 'library' })}><ArrowLeft aria-hidden="true" size={17} />Biblioteca</button>}
           <div className="page-title"><div><p className="eyebrow">PDF PARA EPUB</p><h1 ref={heading} tabIndex={-1}>Nova conversão</h1></div></div>
           {busy && <section className="progress-state" role="status" aria-live="polite">
             <FileText aria-hidden="true" size={36} strokeWidth={1.3} />
-            <h2>{state.phase === 'selecting' ? 'Escolha um PDF' : 'Analisando seu documento'}</h2>
-            <p className="muted">{state.phase === 'selecting' ? 'Use a janela de seleção de arquivos.' : 'Verificando páginas e metadados. Isso pode levar alguns instantes.'}</p>
-            {state.phase === 'inspecting' && <progress aria-label="Inspeção do PDF em andamento" />}
+            <h2>{state.phase === 'selecting' ? 'Escolha um PDF' : state.phase === 'inspecting' ? 'Analisando seu documento' : state.phase === 'choosing-output' ? 'Escolha onde salvar' : 'Convertendo para EPUB'}</h2>
+            <p className="muted">{state.phase === 'selecting' || state.phase === 'choosing-output' ? 'Use a janela de seleção de arquivos.' : state.phase === 'inspecting' ? 'Verificando páginas e metadados. Isso pode levar alguns instantes.' : 'Extraindo e estruturando o texto, gerando e validando o EPUB.'}</p>
+            {(state.phase === 'inspecting' || state.phase === 'converting') && <progress aria-label={`${state.phase === 'inspecting' ? 'Inspeção do PDF' : 'Conversão para EPUB'} em andamento`} />}
             <p className="small muted">O documento permanece neste computador.</p>
           </section>}
-          {state.phase === 'error' && <section className="notice error" role="alert">
+          {state.phase === 'inspection-error' && <section className="notice error" role="alert">
             <TriangleAlert aria-hidden="true" size={24} />
             <h2>Não foi possível analisar o PDF</h2><p>{state.message}</p>
             <button className="primary" onClick={selectPdf}>Escolher outro PDF</button>
+          </section>}
+          {state.phase === 'conversion-error' && <section className="notice error" role="alert">
+            <TriangleAlert aria-hidden="true" size={24} />
+            <h2>Não foi possível converter o PDF</h2><p>{state.message}</p>
+            <button className="primary" onClick={() => convertPdf(state.inspection, state.metadata)}>Tentar novamente</button>
+          </section>}
+          {state.phase === 'success' && <section className="notice" role="status">
+            <Check aria-hidden="true" size={24} />
+            <h2>EPUB criado com sucesso</h2>
+            <p><bdi>{state.conversion.output_path}</bdi></p>
+            <p className="small muted">{state.conversion.pages} páginas · {state.conversion.chapters} capítulos · {state.conversion.paragraphs} parágrafos · {state.conversion.output_bytes} bytes</p>
+            <div className="success-actions"><button className="primary" onClick={reveal}>Mostrar no Finder</button><button className="secondary" onClick={() => setState({ phase: 'library' })}>Converter outro PDF</button></div>
           </section>}
           {state.phase === 'ready' && <>
             <section className="document-row" aria-label="PDF selecionado">
@@ -110,16 +145,13 @@ export default function App() {
                     <label htmlFor="language">Idioma<input id="language" value={state.metadata.language} onChange={e => edit('language', e.target.value)} maxLength={63} list="languages" aria-describedby="language-help" /></label>
                     <datalist id="languages"><option value="pt-BR">Português (Brasil)</option><option value="pt-PT">Português (Portugal)</option><option value="en">Inglês</option><option value="es">Espanhol</option><option value="und">Não identificado</option></datalist>
                     <p id="language-help" className="small muted field-help">Use pt-BR para português do Brasil. “und” significa idioma não identificado.</p>
-                    <div className="field-pair">
-                      <label htmlFor="publisher">Editora<input id="publisher" value={state.metadata.publisher} onChange={e => edit('publisher', e.target.value)} maxLength={512} aria-describedby="draft-help" placeholder="Opcional" /></label>
-                      <label htmlFor="date">Data<input id="date" type="date" value={state.metadata.date} onChange={e => edit('date', e.target.value)} aria-describedby="draft-help" /></label>
-                    </div>
-                    <p id="draft-help" className="small muted field-help">Editora e data são apenas rascunhos; a exportação desses campos ainda não é suportada.</p>
+                    <label htmlFor="identifier">Identificador<input id="identifier" value={state.metadata.identifier} onChange={e => edit('identifier', e.target.value)} maxLength={1024} aria-describedby="identifier-help" placeholder="Gerado automaticamente se vazio" /></label>
+                    <p id="identifier-help" className="small muted field-help">Use um identificador próprio ou deixe vazio para gerar um URN a partir do documento.</p>
                   </div>
                 </section>
               </div>
               {state.inspection.warnings.length > 0 && <details className="warnings"><summary>Observações da inspeção ({state.inspection.warnings.length})</summary><ul>{state.inspection.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}
-              <div className="conversion-footer"><p id="conversion-help" className="small muted">A conversão pela interface ainda não está disponível.<br />Este rascunho é descartado ao voltar à biblioteca ou trocar o PDF.</p><button className="primary" disabled aria-describedby="conversion-help"><BookOpen aria-hidden="true" size={18} />Converter para EPUB</button></div>
+              <div className="conversion-footer"><p id="conversion-help" className="small muted">O destino existente nunca será substituído.<br />Este rascunho é descartado ao voltar à biblioteca ou trocar o PDF.</p><button className="primary" onClick={() => convertPdf(state.inspection, state.metadata)} aria-describedby="conversion-help"><BookOpen aria-hidden="true" size={18} />Converter para EPUB</button></div>
             </>}
           </>}
         </>}

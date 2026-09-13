@@ -1,6 +1,10 @@
 {
   "identifier": "main",
-  "description": "A janela principal pode apenas selecionar e inspecionar um PDF local.",
+  "description": "A janela principal pode selecionar, converter e localizar um PDF/EPUB local.",
   "windows": ["main"],
-  "permissions": ["allow-select-and-inspect-pdf"]
+  "permissions": [
+    "allow-select-and-inspect-pdf",
+    "allow-convert-selected-pdf",
+    "allow-reveal-epub"
+  ]
 }

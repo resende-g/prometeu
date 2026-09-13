@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-convert-selected-pdf"
+description = "Permite converter somente o PDF selecionado pelo shell para um destino nativo."
+commands.allow = ["convert_selected_pdf"]

@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-reveal-epub"
+description = "Permite revelar somente o último EPUB criado pelo aplicativo."
+commands.allow = ["reveal_epub"]

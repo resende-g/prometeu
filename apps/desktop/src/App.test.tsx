@@ -2,16 +2,21 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { selectAndInspect } from './desktop';
-import type { Inspection } from './desktop';
+import { convertSelected, revealEpub, selectAndInspect } from './desktop';
+import type { Conversion, Inspection } from './desktop';
 
-vi.mock('./desktop', () => ({ selectAndInspect: vi.fn() }));
+vi.mock('./desktop', () => ({ selectAndInspect: vi.fn(), convertSelected: vi.fn(), revealEpub: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
 const inspect = vi.mocked(selectAndInspect);
+const convert = vi.mocked(convertSelected);
+const reveal = vi.mocked(revealEpub);
 const sample: Inspection = {
   file_name: 'amostra sintética.pdf', page_count: 2, kind: 'textual',
   metadata: { title: 'Livro sintético', author: 'Autor fictício', language: 'pt-BR' },
   warnings: [],
+};
+const conversion: Conversion = {
+  output_path: '/tmp/livro sintético.epub', pages: 2, paragraphs: 4, chapters: 1, output_bytes: 2048,
 };
 
 async function select(result: Inspection | null = sample) {
@@ -27,24 +32,25 @@ describe('primeira fatia desktop', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Seus livros' })).toBeTruthy();
     expect(screen.getByText(/Nenhum documento é enviado/)).toBeTruthy();
-    expect(screen.getByText(/conversão e o armazenamento de livros ainda não/)).toBeTruthy();
+    expect(screen.getByText(/biblioteca persistente ainda não/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Abrir EPUB' })).toBeNull();
   });
 
-  it('inspeciona e permite editar os cinco metadados sem fingir conversão', async () => {
+  it('inspeciona e permite editar somente os quatro metadados exportáveis', async () => {
     const user = await select();
     expect(screen.getByText('amostra sintética.pdf')).toBeTruthy();
     expect(screen.getByText('2 páginas · PDF textual')).toBeTruthy();
     expect((screen.getByLabelText('Título') as HTMLInputElement).value).toBe('Livro sintético');
     expect((screen.getByLabelText('Autor') as HTMLInputElement).value).toBe('Autor fictício');
-    for (const [label, value] of [['Título', 'Novo título'], ['Autor', 'Outro autor'], ['Idioma', 'es'], ['Editora', 'Editora fictícia'], ['Data', '2026-09-13']]) {
+    for (const [label, value] of [['Título', 'Novo título'], ['Autor', 'Outro autor'], ['Idioma', 'es'], ['Identificador', 'urn:teste:1']]) {
       const input = screen.getByLabelText(label) as HTMLInputElement;
       await user.clear(input);
       await user.type(input, value);
       expect(input.value).toBe(value);
     }
-    expect((screen.getByRole('button', { name: 'Converter para EPUB' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/Editora e data são apenas rascunhos/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Converter para EPUB' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByLabelText('Editora')).toBeNull();
+    expect(screen.queryByLabelText('Data')).toBeNull();
   });
 
   it.each(['scanned', 'mixed', 'empty'] as const)('explica documento %s sem oferecer conversão', async kind => {
@@ -108,5 +114,38 @@ describe('primeira fatia desktop', () => {
     await user.click(screen.getByRole('button', { name: 'Biblioteca' }));
     expect(screen.getByRole('heading', { name: 'Seus livros' })).toBeTruthy();
     expect(screen.queryByLabelText('Título')).toBeNull();
+  });
+
+  it('converte pelo bridge real da interface, mostra resultado e localiza o EPUB', async () => {
+    const user = await select();
+    convert.mockImplementationOnce((_metadata, onConverting) => {
+      onConverting();
+      return Promise.resolve(conversion);
+    });
+    reveal.mockResolvedValueOnce();
+    await user.click(screen.getByRole('button', { name: 'Converter para EPUB' }));
+    expect(convert).toHaveBeenCalledWith(
+      { title: 'Livro sintético', author: 'Autor fictício', language: 'pt-BR', identifier: '' },
+      expect.any(Function),
+    );
+    expect(screen.getByRole('status').textContent).toContain('EPUB criado com sucesso');
+    expect(screen.getByText('/tmp/livro sintético.epub')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Mostrar no Finder' }));
+    expect(reveal).toHaveBeenCalledOnce();
+  });
+
+  it('preserva metadados ao cancelar destino ou repetir conversão após erro', async () => {
+    const user = await select();
+    await user.clear(screen.getByLabelText('Título'));
+    await user.type(screen.getByLabelText('Título'), 'Rascunho');
+    convert.mockResolvedValueOnce(null);
+    await user.click(screen.getByRole('button', { name: 'Converter para EPUB' }));
+    expect((screen.getByLabelText('Título') as HTMLInputElement).value).toBe('Rascunho');
+    convert.mockRejectedValueOnce(new Error('O destino já existe.'));
+    await user.click(screen.getByRole('button', { name: 'Converter para EPUB' }));
+    expect(screen.getByRole('alert').textContent).toContain('O destino já existe.');
+    convert.mockResolvedValueOnce(conversion);
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(screen.getByRole('status').textContent).toContain('EPUB criado com sucesso');
   });
 });
