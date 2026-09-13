@@ -32,10 +32,13 @@ Na Wave 1, inspeção e extração usam subprocessos encerrados e recolhidos pel
 supervisor em timeout, excesso de memória ou IPC. No macOS, o controle de memória
 é RSS por libproc, amostrado nominalmente a cada 20 ms; não é uma reserva rígida
 e pode haver excesso entre amostras. RLIMIT_CPU limita o worker; RLIMIT_AS só é
-usado no Linux. Linux ainda não foi executado nesta retomada. A aplicação requer
-o processo principal em macOS/Linux para o prazo por SIGALRM. O prazo inclui
-snapshot, processamento, validação e fsync, terminando antes da publicação atômica;
-não há garantia de prazo para um syscall de filesystem bloqueado pelo sistema.
+usado no Linux. A matriz final executou Linux real em container somente leitura,
+sem rede, limitado por cgroup a 2 GiB, 2 CPUs e 256 processos; isso comprova o
+comportamento observado nessa configuração, não constitui sandbox contra kernel ou
+runtime comprometido. A aplicação requer o processo principal em macOS/Linux para
+o prazo por SIGALRM. O prazo inclui snapshot, processamento, validação e fsync,
+terminando antes da publicação atômica; não há garantia de prazo para um syscall de
+filesystem bloqueado pelo sistema.
 
 A entrada é aberta, verificada e copiada para diretório privado. A publicação
 sem sobrescrita usa `os.link`: um destino concorrente nunca é substituído.
@@ -48,11 +51,13 @@ do namespace por outro processo com permissão de escrita. Para coordenação
 estrita entre escritores, use saída distinta e sem `--force`.
 
 O validador reabre o ZIP com limites de tamanho/entradas, proíbe DTD, entidades,
-instruções de processamento e conteúdo fora do perfil XHTML/CSS gerado.
-EPUBCheck e revisão independente de segurança ainda não foram executados.
-O estado verificado está em docs/execution-status.md. Vulnerabilidades desconhecidas de
-dependências continuam possíveis; processamento nunca deve ocorrer com privilégios
-elevados. Não se promete remoção de temporários após falha irrecuperável do sistema.
+instruções de processamento e conteúdo fora do perfil XHTML/CSS gerado. A revisão
+independente do diff terminou sem bloqueantes, e o artefato sintético passou no
+EPUBCheck 5.3.0 e no Kindle Previewer 4.0.0. Essas evidências não substituem uma
+auditoria de segurança nem provam ausência de vulnerabilidades. O estado verificado
+está em docs/execution-status.md. Vulnerabilidades desconhecidas de dependências
+continuam possíveis; processamento nunca deve ocorrer com privilégios elevados.
+Não se promete remoção de temporários após falha irrecuperável do sistema.
 
 Não há canal privado de reporte configurado nem contato de segurança inventado.
 Antes de divulgar uma vulnerabilidade, combine um canal com o mantenedor; não
