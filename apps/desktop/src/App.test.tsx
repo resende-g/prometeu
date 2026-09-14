@@ -88,7 +88,7 @@ describe('primeira fatia desktop', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Selecionar PDF' }));
-    expect(screen.getByRole('heading', { name: 'Analisando seu documento' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Analisando seu documento/ })).toBeTruthy();
     expect(screen.getByRole('progressbar').hasAttribute('value')).toBe(false);
     expect(screen.queryByRole('button', { name: 'Selecionar PDF' })).toBeNull();
     await act(async () => complete(sample));
@@ -128,7 +128,7 @@ describe('primeira fatia desktop', () => {
       { title: 'Livro sintético', author: 'Autor fictício', language: 'pt-BR', identifier: '' },
       expect.any(Function),
     );
-    expect(screen.getByRole('status').textContent).toContain('EPUB criado com sucesso');
+    expect(screen.getByRole('status').textContent).toContain('Seu EPUB está pronto!');
     expect(screen.getByText('/tmp/livro sintético.epub')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Mostrar no Finder' }));
     expect(reveal).toHaveBeenCalledOnce();
@@ -146,6 +146,6 @@ describe('primeira fatia desktop', () => {
     expect(screen.getByRole('alert').textContent).toContain('O destino já existe.');
     convert.mockResolvedValueOnce(conversion);
     await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
-    expect(screen.getByRole('status').textContent).toContain('EPUB criado com sucesso');
+    expect(screen.getByRole('status').textContent).toContain('Seu EPUB está pronto!');
   });
 });
