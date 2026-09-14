@@ -1,19 +1,20 @@
 # Prometeu — prontidão do v0.1 e desktop alpha
 
-Data: 2026-09-13. Pontos são concedidos apenas quando há evidência executada.
+Data: 2026-09-14. Pontos são concedidos apenas quando há evidência executada.
 `PARTIAL` recebe somente a fração indicada; `NOT VERIFIED` recebe zero.
 
 ## Resultado
 
 - Core v0.1 técnico: **84/84 (100%)**.
-- Desktop alpha funcional: **13/13 (100%)**.
-- Projeto combinado: **99/100 (99%)**.
+- Desktop alpha definido: **13/13 (100%)**.
+- Projeto/MVP v0.1: **100/100 (100%)**.
 
-O ponto ausente é de documentação/release: o candidato não está integrado em
-`main` nem tagueado. `origin/main` contém apenas a licença em uma história sem
-ancestral comum, portanto uma integração automática não é segura. O desktop alpha
-é funcional em desenvolvimento; não é um aplicativo distribuível porque ainda
-depende de `PROMETEU_PYTHON` e não possui sidecar.
+`main` foi promovida com sucesso pelo PR #1. O HEAD validado é `81a8817`
+(`81a881759fc1cf769723ff608979d5d6e0be5bfd`), com CI `34796365136`
+concluído com `success`; a integração em `main` não é mais pendência.
+O escopo definido do v0.1 está completo. O desktop alpha é funcional em
+desenvolvimento e depende de `PROMETEU_PYTHON`; sua distribuição com sidecar
+pertence ao roadmap e não é requisito deste v0.1.
 
 ## Scorecard
 
@@ -32,10 +33,14 @@ depende de `PROMETEU_PYTHON` e não possui sidecar.
 | Desktop inspeção | 4 | PASS | 4 | Seletor nativo → Rust → Python real → React |
 | Desktop conversão real | 7 | PASS | 7 | E2E nativo: metadados, 2 páginas, 2 capítulos, 4 parágrafos, 2.482 bytes |
 | Desktop lifecycle | 2 | PASS | 2 | Runner compartilhado, grupo próprio e teste que preserva processo alheio |
-| Documentação/release | 3 | PARTIAL | 2 | Gates, handoff e PR #1; integração em main/tag pendentes |
-| **Total** | **100** |  | **99** |  |
+| Documentação/release | 3 | PASS | 3 | Gates, handoff, PR #1 integrado em main e CI 34796365136 verde |
+| **Total** | **100** |  | **100** |  |
 
 ## Evidências reproduzíveis
+
+- `main` promovida: HEAD `81a8817`; GitHub Actions
+  [34796365136](https://github.com/resende-g/prometeu/actions/runs/34796365136)
+  concluído com `success`.
 
 - Core remoto: `codex/gate-e-mvp` em `acd4f57`; GitHub Actions
   [34642131348](https://github.com/resende-g/prometeu/actions/runs/34642131348).
