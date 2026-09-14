@@ -1,0 +1,10 @@
+{
+  "identifier": "main",
+  "description": "A janela principal pode selecionar, converter e localizar um PDF/EPUB local.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-select-and-inspect-pdf",
+    "allow-convert-selected-pdf",
+    "allow-reveal-epub"
+  ]
+}

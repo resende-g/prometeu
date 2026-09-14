@@ -100,3 +100,69 @@ Instalação/desenvolvimento podem usar PyPI e documentação oficial. Conversã
 instala pacotes/fontes/modelos/schemas e não usa rede. EPUBCheck será ferramenta
 local opcional, não incorporada nem baixada automaticamente. A licença Apache-2.0
 do código original não licencia livros, logo, fontes ou anexos do usuário.
+
+
+## Desktop — 2026-09-13
+
+Dependências separadas em apps/desktop; opcionais para usuários da CLI. Nenhuma
+mudança nas dependências Python. Versões/licenças consultadas no npm antes de
+instalar; confirmadas nos package.json e arquivos LICENSE locais após instalação.
+package-lock.json fixa a resolução npm e integridades. Não há CDN em runtime.
+
+| Dependência | Versão | Finalidade | Licença | Necessidade |
+| --- | --- | --- | --- | --- |
+| @tauri-apps/api | 2.11.1 | IPC e Channel locais | Apache-2.0 OR MIT | Desktop runtime |
+| lucide-react | 1.45.0 | Ícones locais | ISC | Desktop runtime |
+| react | 19.3.0 | Interface | MIT | Desktop runtime |
+| react-dom | 19.3.0 | Renderização DOM | MIT | Desktop runtime |
+| @tauri-apps/cli | 2.11.4 | Comandos de desenvolvimento/build nativo | Apache-2.0 OR MIT | Só desenvolvimento |
+| @testing-library/react | 16.3.3 | Testes de renderização | MIT | Só desenvolvimento |
+| @testing-library/user-event | 14.6.7 | Interações acessíveis nos testes | MIT | Só desenvolvimento |
+| @types/node | 26.5.1 | Tipos das ferramentas Node | MIT | Só desenvolvimento |
+| @types/react | 19.3.0 | Tipos React | MIT | Só desenvolvimento |
+| @types/react-dom | 19.3.0 | Tipos React DOM | MIT | Só desenvolvimento |
+| @vitejs/plugin-react | 6.1.1 | Transformação/refresh React | MIT | Só desenvolvimento |
+| eslint | 10.10.0 | Lint | MIT | Só desenvolvimento |
+| eslint-plugin-react-hooks | 7.1.1 | Regras de hooks | MIT | Só desenvolvimento |
+| jsdom | 30.0.1 | DOM de testes | MIT | Só desenvolvimento |
+| typescript | 6.0.3 | Tipos e compilação | Apache-2.0 | Só desenvolvimento |
+| typescript-eslint | 8.70.0 | Lint TypeScript | MIT | Só desenvolvimento |
+| vite | 8.3.0 | Servidor local e bundle | MIT | Só desenvolvimento |
+| vitest | 5.0.0 | Executor de testes | MIT | Só desenvolvimento |
+
+Rust: versões e licenças verificadas nos metadados oficiais do crates.io antes de
+adicionar. Rust não disponível; Cargo.lock/transitivas e licenças de distribuição
+nativa ainda devem ser resolvidos/revisados no próximo incremento.
+
+| Dependência | Versão | Finalidade | Licença | Necessidade |
+| --- | --- | --- | --- | --- |
+| tauri | 2.11.5 | Janela e IPC | Apache-2.0 OR MIT | Desktop runtime |
+| tauri-build | 2.6.3 | Configuração/ACL do shell | Apache-2.0 OR MIT | Build |
+| tauri-plugin-dialog | 2.7.3 | Seletor de PDF nativo | Apache-2.0 OR MIT | Desktop runtime, somente Rust |
+| serde | 1.0.229 | Contratos tipados de IPC | MIT OR Apache-2.0 | Desktop runtime |
+| serde_json | 1.0.151 | Transporte JSON com Python | MIT OR Apache-2.0 | Desktop runtime |
+
+Lucide declara ISC nesta versão; não presumir MIT. TypeScript 7.0.2 foi
+descartado antes da instalação por incompatibilidade com typescript-eslint;
+6.0.3 satisfaz os peers sem --force. Testing Library/React, Vite, Vitest e
+ESLint têm transitivas no lock; nenhum Playwright foi adicionado. Ícones e fontes
+externas não são baixados no runtime. Antes de empacotar instaladores, preservar
+licenças/avisos transitivos de todas as plataformas, como já exigido para o core.
+
+### Validação nativa — segunda execução (2026-09-13)
+
+Cargo.lock resolvido e versionado; Rust 1.98.1/cargo 1.98.1/rustup 1.29.1 instalados
+via fonte oficial, perfil mínimo com rustfmt, sem alterar o perfil do shell.
+A toolchain é apenas de desenvolvimento; não é dependência do pacote Python.
+O lock seleciona time/time-core/time-macros com MSRV 1.88, verificado nos manifests
+locais; Cargo.toml agora declara esse mínimo. O build foi testado com 1.98.1,
+não com uma segunda instalação de 1.88.
+
+| Dependência | Versão | Finalidade | Licença | Necessidade |
+| --- | --- | --- | --- | --- |
+| libc | 0.2.189 | Encerrar somente o grupo de processos possuído pelo app | MIT OR Apache-2.0 | Desktop Unix |
+
+libc já estava no lock como transitiva; tornou-se direta apenas em cfg(unix).
+Licença confirmada no Cargo.toml instalado do crate. Nenhuma nova dependência
+Python/JS, capability ou plugin de shell foi adicionado. Auditoria de avisos
+transitivos e empacotamento por plataforma continuam requisitos de distribuição.

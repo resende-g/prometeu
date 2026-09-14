@@ -34,7 +34,7 @@ EPUBCheck e Kindle continuam sendo verificações externas distintas. Consulte
 ## Escopo e limites
 
 Gates A–E concluídos: 5/5; MVP: 100% do escopo definido. OCR, notas de rodapé,
-layouts multicoluna, imagens, IA, GUI e associação de notas permanecem fora do
+layouts multicoluna, imagens, IA e associação de notas permanecem fora do
 escopo. O Kindle Previewer registrou apenas o aviso não bloqueante de capa ausente;
 capas e imagens não pertencem ao MVP.
 
@@ -58,3 +58,16 @@ prometeu convert --help
 Consulte [contratos](docs/architecture.md), [dependências](docs/dependencies.md),
 [segurança](SECURITY.md) e [contribuição](CONTRIBUTING.md).
 Os documentos PDF preexistentes não são fixtures autorizadas para redistribuição.
+
+## Desktop — prévia em desenvolvimento
+
+Alpha em `apps/desktop`: seleção e inspeção nativas, edição de título, autor,
+idioma e identificador, conversão pelo pipeline real, destino seguro, resultado
+explícito e localização no Finder. Não persiste biblioteca. Frontend, bridges
+Python e fluxos nativos foram testados em macOS arm64. Cargo.lock está versionado;
+fechar durante inspeção ou conversão encerra somente os processos do aplicativo.
+
+A CLI continua independente de Node/React/Rust. Consulte
+[instruções desktop](apps/desktop/README.md), [arquitetura](docs/frontend/architecture.md)
+e [handoff](docs/handoffs/frontend-desktop-handoff.md). O scorecard combinado está
+em [prontidão de release](docs/release-readiness.md).
