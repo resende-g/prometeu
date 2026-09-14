@@ -1,5 +1,7 @@
 # Prometeu
 
+<img width="640" height="640" alt="prometeu-logo" src="https://github.com/user-attachments/assets/3e0734cd-9a5d-4431-abf5-ba3413eea5d3" />
+
 Conversor local de PDF textual para EPUB 3 reflowable. Código original Apache-2.0.
 Não há conta, serviço remoto, telemetria ou download durante conversão.
 
