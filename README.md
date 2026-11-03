@@ -42,6 +42,9 @@ capas e imagens não pertencem ao MVP.
 
 ## Desenvolvimento
 
+Para começar a manter o projeto, leia o
+[guia de arquitetura e manutenção](docs/guia-de-manutencao.md).
+
 Python 3.11+. No ambiente inicial, intérpretes locais ficam em `.python/`.
 
 ```sh
