@@ -132,13 +132,10 @@ def _validate_mimetype_header(path: Path, info: zipfile.ZipInfo) -> None:
         header = source.read(30)
         if len(header) != 30:
             raise _InvalidEPUB("EPUB_MIMETYPE_HEADER", "Cabeçalho ZIP de mimetype inválido.")
-        fields = struct.unpack("<4s5H3L2H", header)
-        signature, flags, compression, name_size, extra_size = (
-            fields[0],
-            fields[2],
-            fields[3],
-            fields[9],
-            fields[10],
+        # Local file header ZIP: assinatura, versão, flags, compressão, hora, data,
+        # CRC, tamanhos comprimido/original, tamanho do nome e do campo extra.
+        signature, _, flags, compression, *_, name_size, extra_size = struct.unpack(
+            "<4s5H3L2H", header
         )
         name = source.read(name_size)
     if (
@@ -498,9 +495,9 @@ def _valid_block(block: ET.Element) -> bool:
             return False
         if name == "em" and list(child):
             return False
-        if name == "strong" and any(_local_name(grandchild.tag) != "em" for grandchild in child):
-            return False
-        if name == "strong" and any(list(grandchild) for grandchild in child):
+        if name == "strong" and any(
+            _local_name(grandchild.tag) != "em" or list(grandchild) for grandchild in child
+        ):
             return False
     return True
 

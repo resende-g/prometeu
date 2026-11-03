@@ -32,6 +32,11 @@ def read_path(payload: bytes) -> Path:
     return path
 
 
+def _reply_error(code: str, message: str, exit_code: int) -> int:
+    print(json.dumps({"ok": False, "error": {"code": code, "message": message}}))
+    return exit_code
+
+
 def main() -> int:
     try:
         path = read_path(sys.stdin.buffer.read(MAX_REQUEST_BYTES + 1))
@@ -41,22 +46,10 @@ def main() -> int:
             )
         result = inspect_document(path)
     except PrometeuError as error:
-        print(json.dumps({"ok": False, "error": {"code": error.code, "message": str(error)}}))
-        return error.exit_code
+        return _reply_error(error.code, str(error), error.exit_code)
     except Exception:
         # Erros inesperados não podem expor conteúdo, caminhos ou stack traces na UI.
-        print(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "INSPECTION_FAILED",
-                        "message": "Não foi possível inspecionar este PDF.",
-                    },
-                }
-            )
-        )
-        return 1
+        return _reply_error("INSPECTION_FAILED", "Não foi possível inspecionar este PDF.", 1)
     print(json.dumps({"ok": True, "inspection": asdict(result)}, ensure_ascii=True))
     return 0
 

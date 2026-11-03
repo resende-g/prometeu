@@ -11,6 +11,8 @@ from prometeu.document.model import (
     Inline,
     Paragraph,
     PhysicalDocument,
+    PhysicalLine,
+    PhysicalPage,
     SemanticDocument,
 )
 
@@ -37,18 +39,44 @@ def body_font_size(physical: PhysicalDocument) -> float:
     return median_low(body_sizes or [style.size for style in styles]) if styles else 12.0
 
 
+def _margin(line: PhysicalLine, page: PhysicalPage) -> str | None:
+    if line.bbox.bottom <= page.height * 0.1:
+        return "header"
+    if line.bbox.top >= page.height * 0.9:
+        return "footer"
+    return None
+
+
+def repeated_marginal_origins(physical: PhysicalDocument) -> set[tuple[int, str]]:
+    """Linhas cujo texto se repete na mesma margem em mais de uma página."""
+    marginal: dict[tuple[str, str], set[tuple[int, str]]] = {}
+    for page in physical.pages:
+        for line in page.lines:
+            margin = _margin(line, page)
+            text = " ".join(line.text.split()).casefold()
+            if margin and text:
+                marginal.setdefault((margin, text), set()).add((page.number, line.id))
+    return {
+        origin
+        for occurrences in marginal.values()
+        if len({page for page, _ in occurrences}) > 1
+        for origin in occurrences
+    }
+
+
 def pagination_origins(physical: PhysicalDocument) -> set[tuple[int, str]]:
     candidates: list[tuple[tuple[int, str], int, int]] = []
     body_size = body_font_size(physical)
     for page in physical.pages:
         for line in page.lines:
-            if line.bbox.bottom > page.height * 0.1 and line.bbox.top < page.height * 0.9:
+            margin = _margin(line, page)
+            if margin is None:
                 continue
             text = line.text.strip()
             styles = [span.style for span in line.spans if span.text.strip()]
             if (
                 text.isdecimal()
-                and line.bbox.bottom <= page.height * 0.1
+                and margin == "header"
                 and styles
                 and all(style.bold for style in styles)
                 and min(style.size for style in styles) > body_size * 1.3
@@ -141,27 +169,7 @@ def normalize(document: SemanticDocument, physical: PhysicalDocument) -> Normali
             and (prefix[1] + "-" + suffix[1]).casefold() not in hyphenated
         ):
             confirmed_breaks.add((left.page, left.id, right.page, right.id))
-    pagination = pagination_origins(physical)
-    marginal: dict[tuple[str, str], set[tuple[int, str]]] = {}
-    for page in physical.pages:
-        for line in page.lines:
-            margin = (
-                "header"
-                if line.bbox.bottom <= page.height * 0.1
-                else "footer"
-                if line.bbox.top >= page.height * 0.9
-                else None
-            )
-            text = " ".join(line.text.split()).casefold()
-            if margin and text:
-                marginal.setdefault((margin, text), set()).add((page.number, line.id))
-    repeated = {
-        origin
-        for occurrences in marginal.values()
-        if len({page for page, _ in occurrences}) > 1
-        for origin in occurrences
-    }
-    removable = pagination | repeated
+    removable = pagination_origins(physical) | repeated_marginal_origins(physical)
     removed: set[tuple[int, str]] = set()
     dehyphenations = 0
 
