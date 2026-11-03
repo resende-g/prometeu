@@ -2,7 +2,11 @@
 
 from collections.abc import Mapping
 
-from prometeu.cleaning.normalize import body_font_size, pagination_origins
+from prometeu.cleaning.normalize import (
+    body_font_size,
+    pagination_origins,
+    repeated_marginal_origins,
+)
 from prometeu.document.contracts import ReconstructionResult
 from prometeu.document.model import (
     Chapter,
@@ -103,30 +107,6 @@ def _chapter(heading: Heading | None, blocks: list[Heading | Paragraph]) -> Chap
     return Chapter(f"chapter-{suffix}", heading, tuple(blocks))
 
 
-def _ignored_marginal_lines(physical: PhysicalDocument) -> set[str]:
-    repeated: dict[tuple[str, str], list[PhysicalLine]] = {}
-    ignored = {line_id for _, line_id in pagination_origins(physical)}
-    for page in physical.pages:
-        for line in page.lines:
-            margin = (
-                "header"
-                if line.bbox.bottom <= page.height * 0.1
-                else "footer"
-                if line.bbox.top >= page.height * 0.9
-                else None
-            )
-            if margin is None:
-                continue
-            text = " ".join(line.text.split())
-            if not text:
-                continue
-            repeated.setdefault((margin, text.casefold()), []).append(line)
-    for occurrences in repeated.values():
-        if len({line.page for line in occurrences}) > 1:
-            ignored.update(line.id for line in occurrences)
-    return ignored
-
-
 def _heading_levels(
     lines: tuple[PhysicalLine, ...],
     body_size: float,
@@ -154,7 +134,9 @@ def _heading_levels(
 
 def reconstruct(physical: PhysicalDocument, metadata: Metadata) -> ReconstructionResult:
     lines = tuple(line for page in physical.pages for line in page.lines)
-    ignored = _ignored_marginal_lines(physical)
+    # Mesmas linhas que normalize() remove: aqui ficam isoladas e nunca viram heading.
+    marginal = pagination_origins(physical) | repeated_marginal_origins(physical)
+    ignored = {line_id for _, line_id in marginal}
     paragraphs = ParagraphReconstructor().reconstruct(
         lines, {page.number: page.height for page in physical.pages}, ignored
     )

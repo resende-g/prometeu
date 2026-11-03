@@ -19,6 +19,7 @@ from prometeu.application.safety import (
 )
 from prometeu.cleaning.normalize import normalize
 from prometeu.document.contracts import (
+    ConversionLimits,
     ConversionRequest,
     ConversionResult,
     Diagnostic,
@@ -63,6 +64,11 @@ class ConversionPipeline:
         ]
         statistics = DocumentStatistics()
         started = time.monotonic()
+
+        def budget() -> ConversionLimits:
+            """Limites da etapa seguinte com o tempo que resta do prazo global."""
+            return replace(request.limits, timeout_seconds=remaining(started, request.limits))
+
         try:
             if request.require_epubcheck:
                 raise ValidationError(
@@ -85,13 +91,7 @@ class ConversionPipeline:
                         source, temporary = working / "input.pdf", working / "output.epub"
                         with deadline(remaining(started, request.limits)):
                             digest = snapshot(input_fd, source, request.limits)
-                            inspection = self.extractor.inspect(
-                                source,
-                                replace(
-                                    request.limits,
-                                    timeout_seconds=remaining(started, request.limits),
-                                ),
-                            )
+                            inspection = self.extractor.inspect(source, budget())
                             diagnostics.extend(inspection.diagnostics)
                             if inspection.visual_only_pages or inspection.kind in (
                                 DocumentKind.SCANNED,
@@ -105,14 +105,7 @@ class ConversionPipeline:
                                 raise UnsupportedDocumentError(
                                     "PDF_EMPTY", "PDF não contém texto extraível."
                                 )
-                            physical = self.extractor.extract(
-                                source,
-                                inspection,
-                                replace(
-                                    request.limits,
-                                    timeout_seconds=remaining(started, request.limits),
-                                ),
-                            )
+                            physical = self.extractor.extract(source, inspection, budget())
                             lines = tuple(line for page in physical.pages for line in page.lines)
                             if not any(line.text.strip() for line in lines):
                                 raise UnsupportedDocumentError(

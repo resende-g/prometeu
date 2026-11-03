@@ -17,11 +17,22 @@ const unsupported = {
   empty: ['Nenhum texto detectado', 'Não foi encontrada uma camada de texto utilizável neste PDF. Escolha outro documento.'],
 } as const;
 
+// Textos da tela de progresso; as chaves são exatamente as fases "ocupadas".
+const progressCopy = {
+  selecting: { title: 'Escolha um PDF', detail: 'Use a janela de seleção de arquivos.', stage: 'Aguardando sua escolha' },
+  inspecting: { title: 'Analisando seu documento…', detail: 'Estamos verificando as informações do PDF.', stage: 'Lendo páginas e metadados' },
+  'choosing-output': { title: 'Escolha onde salvar', detail: 'Use a janela de seleção de arquivos.', stage: 'Definindo o destino' },
+  converting: { title: 'Criando seu livro digital…', detail: 'Extraindo e organizando o conteúdo para gerar o EPUB.', stage: 'Criando e validando o EPUB' },
+} as const;
+
+const errorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
+
 export default function App() {
   const [state, setState] = useState<State>({ phase: 'library' });
   const inFlight = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
-  const busy = ['selecting', 'inspecting', 'choosing-output', 'converting'].includes(state.phase);
+  const progress = Object.hasOwn(progressCopy, state.phase) ? progressCopy[state.phase as keyof typeof progressCopy] : null;
+  const busy = progress !== null;
 
   useEffect(() => { heading.current?.focus(); }, [state.phase]);
 
@@ -38,7 +49,7 @@ export default function App() {
           language: inspection.metadata.language, identifier: '' },
       } : previous);
     } catch (error) {
-      setState({ phase: 'inspection-error', message: error instanceof Error ? error.message : 'Não foi possível inspecionar este PDF.' });
+      setState({ phase: 'inspection-error', message: errorMessage(error, 'Não foi possível inspecionar este PDF.') });
     } finally {
       inFlight.current = false;
     }
@@ -57,7 +68,7 @@ export default function App() {
       const conversion = await convertSelected(metadata, () => setState({ phase: 'converting', inspection, metadata }));
       setState(conversion ? { phase: 'success', conversion } : { phase: 'ready', inspection, metadata });
     } catch (error) {
-      setState({ phase: 'conversion-error', inspection, metadata, message: error instanceof Error ? error.message : 'Não foi possível converter este PDF.' });
+      setState({ phase: 'conversion-error', inspection, metadata, message: errorMessage(error, 'Não foi possível converter este PDF.') });
     } finally {
       inFlight.current = false;
     }
@@ -67,7 +78,7 @@ export default function App() {
     try {
       await revealEpub();
     } catch (error) {
-      setState({ phase: 'inspection-error', message: error instanceof Error ? error.message : 'Não foi possível localizar o EPUB.' });
+      setState({ phase: 'inspection-error', message: errorMessage(error, 'Não foi possível localizar o EPUB.') });
     }
   }
 
@@ -115,14 +126,14 @@ export default function App() {
             <p className="scope-note">A biblioteca persistente ainda não está disponível nesta prévia.</p>
           </> : <>
             <div className="page-title"><div><p className="eyebrow">PDF PARA EPUB</p><h1 ref={heading} tabIndex={-1}>Nova conversão</h1></div></div>
-            {busy && <section className="progress-state" role="status" aria-live="polite">
+            {progress && <section className="progress-state" role="status" aria-live="polite">
               <div className="progress-icon"><FileText aria-hidden="true" size={30} strokeWidth={1.4} /></div>
-              <h2>{state.phase === 'selecting' ? 'Escolha um PDF' : state.phase === 'inspecting' ? 'Analisando seu documento…' : state.phase === 'choosing-output' ? 'Escolha onde salvar' : 'Criando seu livro digital…'}</h2>
-              <p className="muted">{state.phase === 'selecting' || state.phase === 'choosing-output' ? 'Use a janela de seleção de arquivos.' : state.phase === 'inspecting' ? 'Estamos verificando as informações do PDF.' : 'Extraindo e organizando o conteúdo para gerar o EPUB.'}</p>
+              <h2>{progress.title}</h2>
+              <p className="muted">{progress.detail}</p>
               {(state.phase === 'inspecting' || state.phase === 'converting') && <progress aria-label={`${state.phase === 'inspecting' ? 'Inspeção do PDF' : 'Conversão para EPUB'} em andamento`} />}
               <div className="stage-list" aria-hidden="true">
                 {state.phase === 'converting' && <span className="done"><Check size={15} />PDF analisado</span>}
-                <span className="current"><span className="stage-dot" />{state.phase === 'converting' ? 'Criando e validando o EPUB' : state.phase === 'inspecting' ? 'Lendo páginas e metadados' : state.phase === 'choosing-output' ? 'Definindo o destino' : 'Aguardando sua escolha'}</span>
+                <span className="current"><span className="stage-dot" />{progress.stage}</span>
               </div>
               <p className="local-note"><LockKeyhole aria-hidden="true" size={15} />O documento permanece neste computador.</p>
             </section>}

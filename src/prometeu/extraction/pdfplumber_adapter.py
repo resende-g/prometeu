@@ -19,7 +19,7 @@ import subprocess
 import sys
 import time
 from dataclasses import asdict
-from functools import cache
+from functools import cache, reduce
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -45,6 +45,7 @@ from prometeu.document.model import (
 
 _MAX_IPC_BYTES = 64 * 1024 * 1024
 _POLL_SECONDS = 0.02
+_PAGE_GROUPS = ("text_pages", "visual_only_pages", "blank_pages")
 
 
 class PdfPlumberExtractor:
@@ -382,38 +383,19 @@ def _worker_main() -> None:
             raise ValueError
         _send({"ok": True, "result": result})
     except _WorkerFailure as error:
-        _send(
-            {
-                "ok": False,
-                "error": {
-                    "category": error.category,
-                    "code": error.code,
-                    "message": str(error),
-                },
-            }
-        )
+        _send(_error_reply(error.category, error.code, str(error)))
     except MemoryError:
         _send(
-            {
-                "ok": False,
-                "error": {
-                    "category": "extraction",
-                    "code": "PDF_MEMORY_LIMIT",
-                    "message": "Processamento do PDF excedeu a memória limite.",
-                },
-            }
+            _error_reply(
+                "extraction", "PDF_MEMORY_LIMIT", "Processamento do PDF excedeu a memória limite."
+            )
         )
     except BaseException:
-        _send(
-            {
-                "ok": False,
-                "error": {
-                    "category": "extraction",
-                    "code": "PDF_MALFORMED",
-                    "message": "PDF inválido ou malformado.",
-                },
-            }
-        )
+        _send(_error_reply("extraction", "PDF_MALFORMED", "PDF inválido ou malformado."))
+
+
+def _error_reply(category: str, code: str, message: str) -> dict[str, Any]:
+    return {"ok": False, "error": {"category": category, "code": code, "message": message}}
 
 
 def _apply_resource_limits(limits: dict[str, Any]) -> None:
@@ -476,11 +458,22 @@ def _iter_pages(pdf: Any, max_pages: int) -> Any:
         _fail("extraction", "PDF_MALFORMED", "PDF inválido ou malformado.")
 
 
+def _classify_page(page: Any, chars: list[dict[str, Any]], groups: dict[str, list[int]]) -> bool:
+    """Registra a página em um dos _PAGE_GROUPS; devolve se há conteúdo visual."""
+    has_text = any(_char_text(char).strip() for char in chars)
+    has_visual = _has_visual_content(page.objects)
+    if has_text:
+        groups["text_pages"].append(page.page_number)
+    elif has_visual:
+        groups["visual_only_pages"].append(page.page_number)
+    else:
+        groups["blank_pages"].append(page.page_number)
+    return has_visual
+
+
 def _worker_inspect(fd: int, limits: dict[str, Any]) -> dict[str, Any]:
     pdf, stream = _open_pdf(fd)
-    text_pages: list[int] = []
-    visual_only_pages: list[int] = []
-    blank_pages: list[int] = []
+    groups: dict[str, list[int]] = {name: [] for name in _PAGE_GROUPS}
     characters = 0
     page_count = 0
     try:
@@ -492,18 +485,12 @@ def _worker_inspect(fd: int, limits: dict[str, Any]) -> dict[str, Any]:
             characters += sum(len(_char_text(char)) for char in chars)
             if characters > int(limits["max_characters"]):
                 _fail("input", "PDF_TOO_MANY_CHARACTERS", "PDF excede o limite de caracteres.")
-            has_text = any(_char_text(char).strip() for char in chars)
-            has_visual = _has_visual_content(page.objects)
-            if has_text:
-                text_pages.append(page_count)
-            elif has_visual:
-                visual_only_pages.append(page_count)
-            else:
-                blank_pages.append(page_count)
+            _classify_page(page, chars, groups)
     finally:
         pdf.flush_cache()
         stream.close()
 
+    text_pages, visual_only_pages = groups["text_pages"], groups["visual_only_pages"]
     if text_pages and visual_only_pages:
         kind = "mixed"
     elif text_pages:
@@ -515,9 +502,7 @@ def _worker_inspect(fd: int, limits: dict[str, Any]) -> dict[str, Any]:
     return {
         "kind": kind,
         "page_count": page_count,
-        "text_pages": text_pages,
-        "visual_only_pages": visual_only_pages,
-        "blank_pages": blank_pages,
+        **groups,
         "metadata": metadata,
         "diagnostics": diagnostics,
     }
@@ -528,9 +513,7 @@ def _worker_extract(fd: int, inspection: dict[str, Any], limits: dict[str, Any])
     pages: list[dict[str, Any]] = []
     characters = 0
     budget = 0
-    observed_text: list[int] = []
-    observed_visual_only: list[int] = []
-    observed_blank: list[int] = []
+    observed: dict[str, list[int]] = {name: [] for name in _PAGE_GROUPS}
     try:
         metadata, _ = _read_metadata(pdf)
         for page in _iter_pages(pdf, int(limits["max_pages"])):
@@ -540,14 +523,7 @@ def _worker_extract(fd: int, inspection: dict[str, Any], limits: dict[str, Any])
             characters += page_chars
             if characters > int(limits["max_characters"]):
                 _fail("input", "PDF_TOO_MANY_CHARACTERS", "PDF excede o limite de caracteres.")
-            has_text = any(_char_text(char).strip() for char in chars)
-            has_visual = _has_visual_content(page.objects)
-            if has_text:
-                observed_text.append(page.page_number)
-            elif has_visual:
-                observed_visual_only.append(page.page_number)
-            else:
-                observed_blank.append(page.page_number)
+            has_visual = _classify_page(page, chars, observed)
             lines = _physical_lines(page.page_number, chars)
             budget += 256 + page_chars * 4 + len(lines) * 256
             budget += sum(len(line["spans"]) * 192 for line in lines)
@@ -569,9 +545,7 @@ def _worker_extract(fd: int, inspection: dict[str, Any], limits: dict[str, Any])
 
     if (
         len(pages) != int(inspection["page_count"])
-        or observed_text != inspection["text_pages"]
-        or observed_visual_only != inspection["visual_only_pages"]
-        or observed_blank != inspection["blank_pages"]
+        or any(observed[name] != inspection[name] for name in _PAGE_GROUPS)
         or metadata != inspection["metadata"]
     ):
         _fail(
@@ -651,7 +625,7 @@ def _prepared_char(char: dict[str, Any]) -> dict[str, Any]:
     size = _finite(char.get("size"))
     if x1 < x0 or bottom < top or size <= 0:
         _fail("extraction", "PDF_INVALID_GEOMETRY", "PDF contém geometria textual inválida.")
-    result = {
+    return {
         "text": text,
         "x0": x0,
         "top": top,
@@ -660,7 +634,6 @@ def _prepared_char(char: dict[str, Any]) -> dict[str, Any]:
         "fontname": str(char.get("fontname", "")),
         "size": size,
     }
-    return result
 
 
 def _char_text(char: dict[str, Any]) -> str:
@@ -671,16 +644,11 @@ def _char_text(char: dict[str, Any]) -> str:
 
 
 def _same_line(group: dict[str, Any], char: dict[str, Any]) -> bool:
-    group_bottom = float(group["bottom"])
-    group_top = float(group["top"])
-    char_bottom = float(char["bottom"])
-    char_top = float(char["top"])
-    overlap = min(group_bottom, char_bottom) - max(group_top, char_top)
-    smaller_height = min(
-        group_bottom - group_top,
-        char_bottom - char_top,
-    )
-    return overlap >= smaller_height * 0.5 or abs(float(group["baseline"]) - char_bottom) <= 2
+    # Valores já passaram por _finite(); mesma linha = sobreposição vertical ou baseline próxima.
+    overlap: float = min(group["bottom"], char["bottom"]) - max(group["top"], char["top"])
+    smaller_height: float = min(group["bottom"] - group["top"], char["bottom"] - char["top"])
+    baseline_gap: float = abs(group["baseline"] - char["bottom"])
+    return overlap >= smaller_height * 0.5 or baseline_gap <= 2
 
 
 def _style(char: dict[str, Any]) -> dict[str, Any]:
@@ -708,10 +676,7 @@ def _union(left: list[float], right: list[float]) -> list[float]:
 
 
 def _union_many(values: list[list[float]]) -> list[float]:
-    result = values[0]
-    for value in values[1:]:
-        result = _union(result, value)
-    return result
+    return reduce(_union, values)
 
 
 def _has_visual_content(objects: dict[str, list[dict[str, Any]]]) -> bool:
@@ -785,14 +750,9 @@ def _send(value: dict[str, Any]) -> None:
     encoded = json.dumps(value, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
     if len(encoded) > _MAX_IPC_BYTES:
         encoded = json.dumps(
-            {
-                "ok": False,
-                "error": {
-                    "category": "extraction",
-                    "code": "PDF_IPC_LIMIT",
-                    "message": "Resposta do parser excedeu o limite interno.",
-                },
-            },
+            _error_reply(
+                "extraction", "PDF_IPC_LIMIT", "Resposta do parser excedeu o limite interno."
+            ),
             separators=(",", ":"),
         ).encode("utf-8")
     sys.stdout.buffer.write(encoded)

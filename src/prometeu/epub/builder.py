@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import BinaryIO, cast
 from xml.etree import ElementTree as ET
 
+from prometeu.cleaning.normalize import xml_text_valid
 from prometeu.document.contracts import ExportError, ExportOptions
 from prometeu.document.model import Chapter, Heading, Inline, Paragraph, SemanticDocument
 
@@ -90,7 +91,7 @@ def _validate_document(document: SemanticDocument) -> None:
                 "EPUB_HEADING_EMPTY", "Heading sem texto não pode compor a navegação."
             )
         values.extend(run.text for run in _runs(chapter))
-    if any(not _is_xml_text(value) for value in values):
+    if any(not xml_text_valid(value) for value in values):
         raise ExportError("EPUB_XML_CHARACTER", "Texto contém caractere incompatível com XML 1.0.")
 
 
@@ -99,16 +100,6 @@ def _runs(chapter: Chapter) -> Iterable[Inline]:
         yield from chapter.heading.runs
     for block in chapter.blocks:
         yield from block.runs
-
-
-def _is_xml_text(value: str) -> bool:
-    return all(
-        char in "\t\n\r"
-        or "\x20" <= char <= "\ud7ff"
-        or "\ue000" <= char <= "\ufffd"
-        or "\U00010000" <= char <= "\U0010ffff"
-        for char in value
-    )
 
 
 def _zip_info(name: str, compression: int = zipfile.ZIP_DEFLATED) -> zipfile.ZipInfo:
@@ -279,10 +270,7 @@ def _navigation(document: SemanticDocument, chapter_count: int) -> ET.Element:
         ).text = chapter_heading.text if chapter_heading else document.metadata.title
         if chapter is None:
             continue
-        headings = ([chapter.heading] if chapter.heading else []) + [
-            block for block in chapter.blocks if isinstance(block, Heading)
-        ]
-        descendants = [heading for heading in headings if heading is not chapter_heading]
+        descendants = [block for block in chapter.blocks if isinstance(block, Heading)]
         if not descendants:
             continue
         child_list = ET.SubElement(chapter_item, f"{{{_XHTML_NS}}}ol")

@@ -20,6 +20,8 @@ const BRIDGE_ERROR: &str =
     "Não foi possível executar o processamento local. Verifique a instalação do Prometeu.";
 const MAX_REPLY: u64 = 64 * 1024;
 const MAX_REQUEST: usize = 32 * 1024;
+// Prazo externo: o pipeline Python já para em 120 s; a margem cobre partida e saída.
+const BRIDGE_TIMEOUT: Duration = Duration::from_secs(130);
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -82,8 +84,9 @@ struct ConversionReply {
     error: Option<BridgeError>,
 }
 
+// Estado da sessão: uma operação por vez, PDF escolhido e último EPUB publicado.
 #[derive(Default)]
-struct InspectionState {
+struct AppState {
     busy: AtomicBool,
     closing: AtomicBool,
     selected: Mutex<Option<PathBuf>>,
@@ -162,7 +165,7 @@ fn run_bridge(
         }
         match child.try_wait() {
             Ok(Some(status)) => break Ok(status),
-            Ok(None) if started.elapsed() < Duration::from_secs(130) => {
+            Ok(None) if started.elapsed() < BRIDGE_TIMEOUT => {
                 std::thread::sleep(Duration::from_millis(20));
             }
             _ => {
@@ -193,11 +196,7 @@ fn inspect(path: PathBuf, closing: &AtomicBool) -> Result<Inspection, String> {
         "A inspeção excedeu o tempo disponível ou foi interrompida.",
     )?;
     let reply: Reply = serde_json::from_slice(&bytes).map_err(|_| BRIDGE_ERROR)?;
-    match (reply.ok, status.success(), reply.inspection, reply.error) {
-        (true, true, Some(inspection), None) => Ok(inspection),
-        (false, false, None, Some(error)) => Err(error.message),
-        _ => Err(BRIDGE_ERROR.into()),
-    }
+    accept(reply.ok, status, reply.inspection, reply.error)
 }
 
 fn convert(
@@ -223,8 +222,18 @@ fn convert(
         "A conversão excedeu o tempo disponível ou foi interrompida.",
     )?;
     let reply: ConversionReply = serde_json::from_slice(&bytes).map_err(|_| BRIDGE_ERROR)?;
-    match (reply.ok, status.success(), reply.conversion, reply.error) {
-        (true, true, Some(conversion), None) => Ok(conversion),
+    accept(reply.ok, status, reply.conversion, reply.error)
+}
+
+// Só aceita respostas coerentes: sucesso com valor e exit 0, ou erro com mensagem e exit != 0.
+fn accept<T>(
+    ok: bool,
+    status: ExitStatus,
+    value: Option<T>,
+    error: Option<BridgeError>,
+) -> Result<T, String> {
+    match (ok, status.success(), value, error) {
+        (true, true, Some(value), None) => Ok(value),
         (false, false, None, Some(error)) => Err(error.message),
         _ => Err(BRIDGE_ERROR.into()),
     }
@@ -234,7 +243,7 @@ fn convert(
 async fn select_and_inspect_pdf(
     app: tauri::AppHandle,
     progress: Channel<String>,
-    state: State<'_, Arc<InspectionState>>,
+    state: State<'_, Arc<AppState>>,
 ) -> Result<Option<Inspection>, String> {
     if state.closing.load(Ordering::SeqCst)
         || state
@@ -280,7 +289,7 @@ async fn convert_selected_pdf(
     app: tauri::AppHandle,
     metadata: ConversionMetadata,
     progress: Channel<String>,
-    state: State<'_, Arc<InspectionState>>,
+    state: State<'_, Arc<AppState>>,
 ) -> Result<Option<Conversion>, String> {
     let source = state
         .selected
@@ -344,7 +353,7 @@ async fn convert_selected_pdf(
 }
 
 #[tauri::command]
-async fn reveal_epub(state: State<'_, Arc<InspectionState>>) -> Result<(), String> {
+async fn reveal_epub(state: State<'_, Arc<AppState>>) -> Result<(), String> {
     let path = state
         .output
         .lock()
@@ -371,7 +380,7 @@ async fn reveal_epub(state: State<'_, Arc<InspectionState>>) -> Result<(), Strin
 
 fn main() {
     tauri::Builder::default()
-        .manage(Arc::new(InspectionState::default()))
+        .manage(Arc::new(AppState::default()))
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             select_and_inspect_pdf,
@@ -381,7 +390,7 @@ fn main() {
         .build(tauri::generate_context!())
         .expect("Falha ao iniciar Prometeu Desktop")
         .run(|app, event| {
-            let state = app.state::<Arc<InspectionState>>();
+            let state = app.state::<Arc<AppState>>();
             match event {
                 tauri::RunEvent::WindowEvent {
                     event: tauri::WindowEvent::CloseRequested { api, .. },

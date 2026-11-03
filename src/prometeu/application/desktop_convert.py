@@ -8,6 +8,7 @@ from prometeu.application.pipeline import ConversionPipeline
 from prometeu.document.contracts import ConversionRequest, InputError, Severity
 
 MAX_REQUEST_BYTES = 32 * 1024
+GENERIC_FAILURE = "Não foi possível converter este PDF."
 
 
 def read_request(payload: bytes) -> ConversionRequest:
@@ -48,6 +49,11 @@ def read_request(payload: bytes) -> ConversionRequest:
     )
 
 
+def _reply_error(code: str, message: str, exit_code: int) -> int:
+    print(json.dumps({"ok": False, "error": {"code": code, "message": message}}))
+    return exit_code
+
+
 def main() -> int:
     try:
         if sys.platform != "darwin" and not sys.platform.startswith("linux"):
@@ -57,40 +63,18 @@ def main() -> int:
         request = read_request(sys.stdin.buffer.read(MAX_REQUEST_BYTES + 1))
         result = ConversionPipeline().run(request)
     except InputError as error:
-        print(json.dumps({"ok": False, "error": {"code": error.code, "message": str(error)}}))
-        return error.exit_code
+        return _reply_error(error.code, str(error), error.exit_code)
     except Exception:
-        print(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": "CONVERSION_FAILED",
-                        "message": "Não foi possível converter este PDF.",
-                    },
-                }
-            )
-        )
-        return 1
+        return _reply_error("CONVERSION_FAILED", GENERIC_FAILURE, 1)
     if not result.success:
+        # O último diagnóstico ERROR é a causa que interrompeu o pipeline.
         failure = next(
             (item for item in reversed(result.diagnostics) if item.severity is Severity.ERROR),
             None,
         )
-        print(
-            json.dumps(
-                {
-                    "ok": False,
-                    "error": {
-                        "code": failure.code if failure else "CONVERSION_FAILED",
-                        "message": failure.message
-                        if failure
-                        else "Não foi possível converter este PDF.",
-                    },
-                }
-            )
-        )
-        return result.exit_code or 1
+        if failure is None:
+            return _reply_error("CONVERSION_FAILED", GENERIC_FAILURE, result.exit_code or 1)
+        return _reply_error(failure.code, failure.message, result.exit_code or 1)
     stats = result.statistics
     print(
         json.dumps(
